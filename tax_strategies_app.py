@@ -46,6 +46,7 @@ LANG_MAP = {
         "col_nw": "Total Net Worth",
         "col_events": "🚨 Important Events",
         "event_retire": "Retirement",
+        "event_roth_stop": "🛑 Roth Stop",
         "event_hmed": "H-Medicare",
         "event_wmed": "W-Medicare",
         "event_hrmd": "H-RMD Start",
@@ -99,6 +100,7 @@ LANG_MAP = {
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
         "col_events": "🚨 重要事件",
+        "event_roth_stop": "🛑 Roth 转换停止",
         "event_retire": "退休",
         "event_hmed": "丈夫医保",
         "event_wmed": "妻子医保",
@@ -205,7 +207,7 @@ def calculate_roadmap():
         if active_conversion == 0 and not conversion_already_stopped:
             # We check if the user actually had a conversion amount set to begin with
             if roth_conv > 0:
-                ev.append(f"🛑 Roth Stop ({stop_reason})")
+                ev.append(f"{t['event_roth_stop']} ({stop_reason})")
                 conversion_already_stopped = True
 
         # 2. Inflows & RMDs
