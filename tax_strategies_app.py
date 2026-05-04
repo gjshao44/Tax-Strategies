@@ -45,6 +45,7 @@ LANG_MAP = {
         "col_tax": "OUT: Fed Tax",
         "col_nw": "Total Net Worth",
         "col_events": "🚨 Important Events",
+        "event_oom": "⚠️ OUT OF MONEY",        
         "event_retire": "Retirement",
         "event_roth_stop": "🛑 Roth Stop",
         "event_hmed": "H-Medicare",
@@ -100,6 +101,7 @@ LANG_MAP = {
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
         "col_events": "🚨 重要事件",
+        "event_oom": "⚠️ 资金耗尽",        
         "event_roth_stop": "🛑 Roth 转换停止",
         "event_retire": "退休",
         "event_hmed": "丈夫医保",
@@ -131,7 +133,7 @@ with st.sidebar:
     ira_h_init = st.number_input("Husband IRA Balance ($)", value=1500000)
     ira_w_init = st.number_input("Wife IRA Balance ($)", value=10000)
     roth_init = st.number_input("Roth IRA Balance ($)", value=100000)
-    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=500000)
+    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=1000000)
 
     st.header(t["sidebar_ss"])
     ss_h_monthly = st.number_input("H Monthly SS ($)", value=4000)
@@ -144,15 +146,15 @@ with st.sidebar:
     annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 100000, 20000, step=5000)
 
     st.header(t["sidebar_cash"])
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=80000)
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=100000)
     muni_int = st.number_input("Annual Tax-Free Muni Interest", value=37000)
     taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
     last_salary = st.number_input("Final Salary (Retirement Year)", value=90000)
     
     st.header(t["sidebar_growth"])
-    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 5.0) / 100
-    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 7.0) / 100
-    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 4.0) / 100
+    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 4.0) / 100
+    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 5.0) / 100
+    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 3.0) / 100
     inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
 
 # --- 3. CALCULATION ENGINE ---
@@ -162,6 +164,9 @@ def calculate_roadmap():
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
 
+    # Track OOM status to trigger event only once
+    oom_triggered = False    
+    
     # Track if we have already flagged the conversion stop to avoid duplicate events
     conversion_already_stopped = False
 
@@ -242,7 +247,15 @@ def calculate_roadmap():
         target_expense = (annual_expense * inf_factor) + fed_tax
         available_cash = total_ss + salary + taxable_div + annual_ltcg + muni_int + total_rmd
         shortfall = max(0, target_expense - available_cash)
+
+        # Calculate total liquid assets before withdrawals
+        total_assets_available = cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth        
         
+        # Trigger "Out of Money" event if shortfall exceeds total assets
+        if shortfall > total_assets_available and not oom_triggered:
+            ev.append(t["event_oom"])
+            oom_triggered = True        
+
         from_broker = min(cur_brokerage, shortfall)
         cur_brokerage -= from_broker
         shortfall -= from_broker
