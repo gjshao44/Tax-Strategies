@@ -23,9 +23,11 @@ LANG_MAP = {
 * **Observe Total NW:** Watch the final column of the roadmap to see how paying taxes early (in Roth conversion, tax free bond, harvesting capital gains) preserves long-term capital.
 """,
         "kpi_h": "🚀 15-Year Strategic Outlook",
+        "kpi_init_nw": "Initial Net Worth",
         "kpi_nw": "Estimated Final NW (Year 15)",
         "kpi_tax": "Total Federal Tax Paid",
         "kpi_roth": "Total Roth Reservoir",
+        "kpi_cap_init": "Your starting capital across all accounts.",
         "kpi_cap_nw": "Total capital remaining across all accounts.",
         "kpi_cap_tax": "Cumulative tax burden over the 15-year period.",
         "kpi_cap_roth": "Final tax-free balance available for heirs or late-life needs.",
@@ -75,9 +77,11 @@ LANG_MAP = {
 * **观察总净资产 (Total NW):** 关注路线图的最后一列，观察通过早期纳税（如 Roth 转换、税收减免债券、资本利得变现）如何保护长期资本。
 """,
         "kpi_h": "🚀 15年战略展望",
+        "kpi_init_nw": "初始净资产",
         "kpi_nw": "预计最终净资产 (第15年)",
         "kpi_tax": "联邦税总支出",
         "kpi_roth": "Roth 账户储备",
+        "kpi_cap_init": "您的账户初始总资本。",        
         "kpi_cap_nw": "所有账户中的剩余总资本。",
         "kpi_cap_tax": "15年期间累计的税务负担。",
         "kpi_cap_roth": "可供继承或后期使用的最终免税余额。",
@@ -287,17 +291,25 @@ df = calculate_roadmap()
 
 # --- KPI SECTION ---
 st.subheader(t["kpi_h"])
-kpi1, kpi2, kpi3 = st.columns(3)
+kpi0, kpi1, kpi2, kpi3 = st.columns(4)
+
+# New Initial Net Worth Item
+with kpi0:
+    initial_nw = ira_h_init + ira_w_init + roth_init + brokerage_init
+    st.metric(t["kpi_init_nw"], f"${initial_nw:,.0f}")
+    st.caption(t["kpi_cap_init"])
+
 with kpi1:
     st.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}")
     st.caption(t["kpi_cap_nw"])
+
 with kpi2:
     st.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
     st.caption(t["kpi_cap_tax"])
+
 with kpi3:
     st.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
     st.caption(t["kpi_cap_roth"])
-
 st.divider()
 
 # --- ROADMAP TABLE ---
