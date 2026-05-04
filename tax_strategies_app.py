@@ -11,7 +11,7 @@ LANG_MAP = {
         "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to minimize the next 15 year total federal tax paid, therefore achive optimum total wealth.",
         "meth_h": "🔬 Methodology",
         "meth_body": """
-* **Asset Progression:** Tracks growth rates across three buckets (IRA @ 5%, Roth @ 7%, Brokerage @ 4%).
+* **Asset Progression:** Tracks growth rates across three buckets (IRA, Roth, Brokerage).
 * **Tax Attribution:** Distributes the annual Federal Tax burden proportionally across taxable yield sources.
 * **IRMAA Monitoring:** Includes Municipal Interest in the MAGI calculation to track Medicare surcharge thresholds.
 * **Waterfall Withdrawal Strategy:** a systematic approach to spending down retirement assets that prioritizes tax efficiency and capital preservation, in the order of taxable accounts, IRA accounts and Roth IRA accounts.
@@ -63,7 +63,7 @@ LANG_MAP = {
         "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是最小化未来 15 年的联邦税总支出，从而实现总财富的最优配置。",
         "meth_h": "🔬 模拟方法论",
         "meth_body": """
-* **资产演进:** 追踪三大类账户的增长（IRA @ 5%, Roth @ 7%, 经纪账户 @ 4%）。
+* **资产演进:** 追踪三大类账户的增长（IRA, Roth, 经纪账户）。
 * **税务归属:** 将年度联邦税负担按比例分配到各个应税收益来源中。
 * **IRMAA 监测:** 将市政债券利息纳入 MAGI 计算，以追踪医保附加费 (Medicare surcharge) 的阈值。
 * **瀑布式提款策略:** 一种系统化的提款方式，优先考虑税务效率和资本保全，提款顺序依次为：应税账户、IRA 账户、最后是 Roth IRA 账户。
