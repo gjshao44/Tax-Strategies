@@ -20,7 +20,7 @@ LANG_MAP = {
         "use_body": """
 * **Adjust Strategic Levers:** Use the sidebar to simulate different Roth conversion levels and Capital Gain harvesting.
 * **Test Diffrent Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
-* **Observe Total NW:** Watch the final column of the roadmap to see how paying taxes early (in Roth convertion, tax free bond, harvesting capital gains) preserves long-term capital.
+* **Observe Total NW:** Watch the final column of the roadmap to see how paying taxes early (in Roth conversion, tax free bond, harvesting capital gains) preserves long-term capital.
 """,
         "kpi_h": "🚀 15-Year Strategic Outlook",
         "kpi_nw": "Estimated Final NW (Year 15)",
@@ -156,6 +156,9 @@ def calculate_roadmap():
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
 
+    # Track if we have already flagged the conversion stop to avoid duplicate events
+    conversion_already_stopped = False
+
     # DYNAMIC RMD AGE CALCULATION
     # Based on birth year derived from age in the start year (2026)
     birth_year_h = 2026 - h_age_at_retire
@@ -180,8 +183,28 @@ def calculate_roadmap():
         if age_h == rmd_age_h: ev.append(t["event_hrmd"])
         if age_w == rmd_age_w: ev.append(t["event_wrmd"])
 
-        # 2. Income & RMDs
-        # Using IRS Uniform Lifetime Table divisors (approximate)
+# 2. SMART CONVERSION STOP LOGIC
+        active_conversion = roth_conv
+        stop_reason = ""
+
+        # Stop condition A: RMD age reached
+        if age_h >= rmd_age_h or age_w >= rmd_age_w:
+            active_conversion = 0
+            stop_reason = "RMD Start"
+
+        # Stop condition B: Low IRA Balance
+        if (cur_ira_h + cur_ira_w) < 50000 and active_conversion > 0:
+            active_conversion = 0
+            stop_reason = "IRA Depleted"
+
+        # 3. RECORD "ROTH STOP" EVENT
+        if active_conversion == 0 and not conversion_already_stopped:
+            # We check if the user actually had a conversion amount set to begin with
+            if roth_conv > 0:
+                ev.append(f"🛑 Roth Stop ({stop_reason})")
+                conversion_already_stopped = True
+
+        # 2. Inflows & RMDs
         rmd_h = (cur_ira_h / 24.6) if age_h >= rmd_age_h else 0
         rmd_w = (cur_ira_w / 26.5) if age_w >= rmd_age_w else 0
         total_rmd = rmd_h + rmd_w
@@ -190,14 +213,26 @@ def calculate_roadmap():
         w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= ss_w_start else 0
         total_ss = h_ss + w_ss
         
-        provisional = (salary + taxable_div + annual_ltcg + roth_conv + total_rmd) + muni_int + (total_ss * 0.5)
+        # 3. Tax Calculation
+        provisional = (salary + taxable_div + annual_ltcg + active_conversion + total_rmd) + muni_int + (total_ss * 0.5)
         taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
-        agi = salary + taxable_div + annual_ltcg + roth_conv + taxable_ss + total_rmd
+        agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
         magi = agi + muni_int
+        
+        # 4. IRMAA GUARD (Reduce conversion to stay under threshold if applicable)
+        irmaa_limit = irmaa_base_2026 * inf_factor
+        if magi > irmaa_limit and active_conversion > 0:
+            overshoot = magi - irmaa_limit
+            active_conversion = max(0, active_conversion - overshoot)
+            # Recalculate AGI/MAGI after adjustment
+            agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
+            magi = agi + muni_int
+
         deduct = (32200 + (2 if age_h >= 65 and age_w >= 65 else 1) * 1650) * inf_factor
         taxable_inc = max(0, agi - deduct)
         fed_tax = (max(0, taxable_inc - (98900 * inf_factor)) * 0.15) + (min(taxable_inc, 98900 * inf_factor) * 0.11)
         
+        # 5. Waterfall Withdrawals
         target_expense = (annual_expense * inf_factor) + fed_tax
         available_cash = total_ss + salary + taxable_div + annual_ltcg + muni_int + total_rmd
         shortfall = max(0, target_expense - available_cash)
@@ -211,19 +246,21 @@ def calculate_roadmap():
         from_roth = min(cur_roth, shortfall)
         cur_roth -= from_roth
 
+        # 6. Progression
         ira_total = cur_ira_h + cur_ira_w
         if ira_total > 0:
-            cur_ira_h -= (cur_ira_h / ira_total) * ira_withdrawn
-            cur_ira_w -= (cur_ira_w / ira_total) * ira_withdrawn
-        cur_ira_h = max(0, (cur_ira_h - roth_conv * 0.95)) * (1 + ira_growth)
-        cur_ira_w = max(0, (cur_ira_w - roth_conv * 0.05)) * (1 + ira_growth)
+            cur_ira_h -= (cur_ira_h / ira_total) * (ira_withdrawn + active_conversion * 0.95)
+            cur_ira_w -= (cur_ira_w / ira_total) * (ira_withdrawn + active_conversion * 0.05)
+        
+        cur_ira_h = max(0, cur_ira_h) * (1 + ira_growth)
+        cur_ira_w = max(0, cur_ira_w) * (1 + ira_growth)
         yearly_roth_growth = cur_roth * roth_growth
-        cur_roth = (cur_roth + roth_conv + yearly_roth_growth)
+        cur_roth = (cur_roth + active_conversion + yearly_roth_growth)
         cur_brokerage *= (1 + broker_growth)
         
         rows.append({
             "Year": year, "Ages": f"{age_h}/{age_w}", 
-            "INPUT: SS": total_ss, "LEVER: Roth": roth_conv, "LEVER: Cap Gains": annual_ltcg,
+            "INPUT: SS": total_ss, "LEVER: Roth": active_conversion, "LEVER: Cap Gains": annual_ltcg,
             "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
             "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
