@@ -41,16 +41,12 @@ LANG_MAP = {
         "sidebar_cash": "💵 Cash Flow, Yield & Expenses",
         "sidebar_ss": "📈 Social Security",
         "sidebar_levers": "🎚️ Strategy Levers",
-        "col_ltcg": "INPUT: LTCG",
-        "col_muni": "INPUT: Tax-Free Int",
-        "col_tax_div": "INPUT: Taxable Div",
         "col_ss": "INPUT: SS",
         "col_roth": "LEVER: Roth",
         "col_magi": "OUT: MAGI",
         "col_tax": "OUT: Fed Tax",
         "col_nw": "Total Net Worth",
         "col_events": "🚨 Important Events",
-        "col_outflow": "OUT: Total Outflow",
         "event_oom": "⚠️ OUT OF MONEY",        
         "event_retire": "Retirement",
         "event_roth_stop": "🛑 Roth Stop",
@@ -65,7 +61,6 @@ LANG_MAP = {
         "sum_final": "Final Asset Balance",
         "sum_yield": "Total 15-Yr Yield/Income",
         "sum_liability": "Total 15-Yr Tax Liability",
-        "sum_outflow": "Total 15-Yr Outflow",
         "total_label": "**TOTAL**"
     },
     "Chinese": {
@@ -104,16 +99,12 @@ LANG_MAP = {
         "sidebar_cash": "💵 现金流,收益与支出",
         "sidebar_ss": "📈 社会安全金",
         "sidebar_levers": "🎚️ 策略杠杆",
-        "col_ltcg": "长期资本利得",
-        "col_muni": "免税利息 (Muni)",
-        "col_tax_div": "应税股息",
         "col_ss": "社保收入",
         "col_roth": "Roth转换",
         "col_magi": "MAGI(医保判定)",
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
         "col_events": "🚨 重要事件",
-        "col_outflow": "总支出 (含税)",
         "event_oom": "⚠️ 资金耗尽",        
         "event_roth_stop": "🛑 Roth 转换停止",
         "event_retire": "退休",
@@ -128,7 +119,6 @@ LANG_MAP = {
         "sum_final": "期末资产余额",
         "sum_yield": "15年总收益/收入",
         "sum_liability": "15年总税务责任",
-        "sum_outflow": "15年总支出",        
         "total_label": "**总计**"
     }
 }
@@ -290,28 +280,20 @@ def calculate_roadmap():
         cur_ira_w = max(0, cur_ira_w) * (1 + ira_growth)
         yearly_roth_growth = cur_roth * roth_growth
         cur_roth = (cur_roth + active_conversion + yearly_roth_growth)
-        # 1. Calculate the 'Price Growth' (Total Return minus what was paid out as cash)
-        # We divide by the current balance to get the yield percentage
-        current_yield_rate = (taxable_div + muni_int) / max(1, cur_brokerage)
-        effective_price_growth = broker_growth - current_yield_rate
-
-        # 2. Apply growth only to the remaining principal
-        cur_brokerage = cur_brokerage * (1 + effective_price_growth)        
+        cur_brokerage *= (1 + broker_growth)
+        
         rows.append({
-            "Year": year,
-            "Ages": f"{age_h}/{age_w}",
-            "annual_ltcg": annual_ltcg,  # <--- ADD THIS LINE
-            "raw_div": taxable_div,
-            "raw_muni": muni_int,
-            "LEVER: Roth": active_conversion,
-            "OUT: MAGI": magi,
-            "OUT: Fed Tax": fed_tax,
-            "raw_outflow": target_expense,
-            "Total NW": total_assets_available,
-            "IRMAA": irmaa,
-            "🚨 Important Events": " / ".join(ev) if ev else ""
-        })    
-        return pd.DataFrame(rows)
+            "Year": year, "Ages": f"{age_h}/{age_w}", 
+            "INPUT: SS": total_ss, "LEVER: Roth": active_conversion, "LEVER: Cap Gains": annual_ltcg,
+            "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
+            "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
+            "raw_outflow": target_expense,          
+            "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
+            "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf_factor) else "🚩 Above",
+            "🚨 Important Events": ", ".join(ev),
+            "raw_roth_yield": yearly_roth_growth, "raw_div": taxable_div, "raw_cg": annual_ltcg, "raw_muni": muni_int, "raw_rmd": total_rmd
+        })
+    return pd.DataFrame(rows)
 
 # --- 4. MAIN DISPLAY ---
 st.title(t["title"])
@@ -361,40 +343,18 @@ st.divider()
 # --- ROADMAP TABLE ---
 st.subheader(f"{t['roadmap_h']} {retire_year}")
 col_map = {
-    "raw_div": t["col_tax_div"],     # $33,000
-    "raw_muni": t["col_muni"],       # $37,000
-    "annual_ltcg": t["col_ltcg"],    # $20,000
-    "LEVER: Roth": t["col_roth"],    # $40,000
-    "OUT: MAGI": t["col_magi"],      # Total: $130,000
-    "OUT: Fed Tax": t["col_tax"], 
-    "raw_outflow": t["col_outflow"],
-    "Total NW": t["col_nw"], 
-    "🚨 Important Events": t["col_events"]
+    "INPUT: SS": t["col_ss"], "LEVER: Roth": t["col_roth"], 
+    "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], 
+    "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]
 }
-
-# Add the new columns to the selection
-display_cols = [
-    'Year', 'Ages', 'raw_div', 'raw_muni', 'annual_ltcg', 
-    'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 
-    'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events'
-]
-
-st.table(df[display_cols].rename(columns=col_map).style.format({
-    t["col_tax_div"]: "${:,.0f}",
-    t["col_muni"]: "${:,.0f}",
-    t["col_ltcg"]: "${:,.0f}",
-    t["col_roth"]: "${:,.0f}",
-    t["col_magi"]: "${:,.0f}", 
-    t["col_tax"]: "${:,.0f}", 
-    t["col_outflow"]: "${:,.0f}", 
-    t["col_nw"]: "${:,.0f}"
+st.table(df[['Year', 'Ages', 'INPUT: SS', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({
+    t["col_ss"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", 
+    t["col_tax"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
 }))
 
 # --- SUMMARY TABLE WITH TOTAL ---
 st.divider()
 st.subheader(t["summary_h"])
-
-# Tax attribution math
 total_tax = df["OUT: Fed Tax"].sum()
 total_inc_taxable = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
 tax_per_dollar = total_tax / max(1, total_inc_taxable)
@@ -425,7 +385,7 @@ summary_rows = [
 
 df_sum = pd.DataFrame(summary_rows)
 
-# Generate the Account Totals row
+# Generate the TOTAL row
 totals = {
     "Type": t["total_label"],
     "Init": df_sum["Init"].sum(),
@@ -434,16 +394,18 @@ totals = {
     "Liability": df_sum["Liability"].sum()
 }
 
+# Append total row to summary
 df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
 
-# Display Account Summary
-st.table(df_final_sum.rename(columns={
+sum_col_map = {
     "Type": "Account", 
     "Init": t["sum_init"], 
     "Final": t["sum_final"], 
     "Yield": t["sum_yield"], 
     "Liability": t["sum_liability"]
-}).style.format({
+}
+
+st.table(df_final_sum.rename(columns=sum_col_map).style.format({
     t["sum_init"]: "${:,.0f}", 
     t["sum_final"]: "${:,.0f}", 
     t["sum_yield"]: "${:,.0f}", 
