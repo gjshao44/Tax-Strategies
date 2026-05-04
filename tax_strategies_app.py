@@ -33,8 +33,8 @@ LANG_MAP = {
         "summary_h": "📊 Strategic Account Summary (15-Year Cumulative)",
         "sidebar_timeline": "⏳ 1. Retirement Timeline",
         "sidebar_assets": "💰 Initial Assets (2026)",
-        "sidebar_growth": "📈 Growth & Expenses",
-        "sidebar_cash": "💵 Cash Flow & Yield",
+        "sidebar_growth": "📈 Growth",
+        "sidebar_cash": "💵 Cash Flow, Yield & Expenses",
         "sidebar_ss": "📈 Social Security",
         "sidebar_levers": "🎚️ Strategy Levers",
         "col_ss": "INPUT: SS",
@@ -54,7 +54,8 @@ LANG_MAP = {
         "sum_init": "Initial Balance",
         "sum_final": "Final Asset Balance",
         "sum_yield": "Total 15-Yr Yield/Income",
-        "sum_liability": "Total 15-Yr Tax Liability"
+        "sum_liability": "Total 15-Yr Tax Liability",
+        "total_label": "**TOTAL**"
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -84,8 +85,8 @@ LANG_MAP = {
         "summary_h": "📊 战略账户总结 (15年累计)",
         "sidebar_timeline": "⏳ 1. 退休时间轴",
         "sidebar_assets": "💰 初始资产 (2026)",
-        "sidebar_growth": "📈 增长与支出",
-        "sidebar_cash": "💵 现金流与收益",
+        "sidebar_growth": "📈 增长",
+        "sidebar_cash": "💵 现金流,收益与支出",
         "sidebar_ss": "📈 社会安全金",
         "sidebar_levers": "🎚️ 策略杠杆",
         "col_ss": "社保收入",
@@ -105,7 +106,8 @@ LANG_MAP = {
         "sum_init": "初始余额",
         "sum_final": "期末资产余额",
         "sum_yield": "15年总收益/收入",
-        "sum_liability": "15年总税务责任"
+        "sum_liability": "15年总税务责任",
+        "total_label": "**总计**"
     }
 }
 
@@ -124,19 +126,7 @@ with st.sidebar:
     ira_w_init = st.number_input("Wife IRA Balance ($)", value=10000)
     roth_init = st.number_input("Roth IRA Balance ($)", value=100000)
     brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=500000)
-    
-    st.header(t["sidebar_growth"])
-    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 5.0) / 100
-    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 7.0) / 100
-    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 4.0) / 100
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=80000)
-    inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
 
-    st.header(t["sidebar_cash"])
-    muni_int = st.number_input("Annual Tax-Free Muni Interest", value=37000)
-    taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
-    last_salary = st.number_input("Final Salary (Retirement Year)", value=90000)
-    
     st.header(t["sidebar_ss"])
     ss_h_monthly = st.number_input("H Monthly SS ($)", value=4000)
     ss_h_start = st.number_input("H Start Year", value=2029)
@@ -147,6 +137,18 @@ with st.sidebar:
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 100000, 40000, step=5000)
     annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 100000, 20000, step=5000)
 
+    st.header(t["sidebar_cash"])
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=80000)
+    muni_int = st.number_input("Annual Tax-Free Muni Interest", value=37000)
+    taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
+    last_salary = st.number_input("Final Salary (Retirement Year)", value=90000)
+    
+    st.header(t["sidebar_growth"])
+    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 5.0) / 100
+    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 7.0) / 100
+    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 4.0) / 100
+    inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
+
 # --- 3. CALCULATION ENGINE ---
 def calculate_roadmap():
     rows = []
@@ -154,20 +156,34 @@ def calculate_roadmap():
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
 
+    # DYNAMIC RMD AGE CALCULATION
+    # Based on birth year derived from age in the start year (2026)
+    birth_year_h = 2026 - h_age_at_retire
+    birth_year_w = 2026 - w_age_at_retire
+    
+    # SECURE Act 2.0 Logic:
+    # Born 1951-1959 -> RMD Age 73
+    # Born 1960 or later -> RMD Age 75
+    rmd_age_h = 75 if birth_year_h >= 1960 else 73
+    rmd_age_w = 75 if birth_year_w >= 1960 else 73
+
     for i in range(15):
         year = retire_year + i
         age_h, age_w = h_age_at_retire + i, w_age_at_retire + i
         inf_factor = (1 + inflation_rate) ** i
         ev = []
         
+        # 1. Timeline Events using Dynamic RMD Ages
         if year == retire_year: ev.append(t["event_retire"])
         if age_h == 65: ev.append(t["event_hmed"])
         if age_w == 65: ev.append(t["event_wmed"])
-        if age_h == 75: ev.append(t["event_hrmd"])
-        if age_w == 73: ev.append(t["event_wrmd"])
+        if age_h == rmd_age_h: ev.append(t["event_hrmd"])
+        if age_w == rmd_age_w: ev.append(t["event_wrmd"])
 
-        rmd_h = (cur_ira_h / 24.6) if age_h >= 75 else 0
-        rmd_w = (cur_ira_w / 26.5) if age_w >= 73 else 0
+        # 2. Income & RMDs
+        # Using IRS Uniform Lifetime Table divisors (approximate)
+        rmd_h = (cur_ira_h / 24.6) if age_h >= rmd_age_h else 0
+        rmd_w = (cur_ira_w / 26.5) if age_w >= rmd_age_w else 0
         total_rmd = rmd_h + rmd_w
         salary = last_salary if year == retire_year else 0
         h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
@@ -259,20 +275,62 @@ st.table(df[['Year', 'Ages', 'INPUT: SS', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed 
     t["col_tax"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
 }))
 
-# --- SUMMARY TABLE ---
+# --- SUMMARY TABLE WITH TOTAL ---
 st.divider()
 st.subheader(t["summary_h"])
 total_tax = df["OUT: Fed Tax"].sum()
-total_inc = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
-tax_rate = total_tax / max(1, total_inc)
+total_inc_taxable = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
+tax_per_dollar = total_tax / max(1, total_inc_taxable)
 
 summary_rows = [
-    {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_rate},
-    {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
-    {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_rate}
+    {
+        "Type": t["acc_ira"],
+        "Init": ira_h_init + ira_w_init,
+        "Final": df.iloc[-1]['IRA Bal'],
+        "Yield": df["raw_rmd"].sum(),
+        "Liability": df["raw_rmd"].sum() * tax_per_dollar
+    },
+    {
+        "Type": t["acc_roth"],
+        "Init": roth_init,
+        "Final": df.iloc[-1]['Roth Bal'],
+        "Yield": df["raw_roth_yield"].sum(),
+        "Liability": 0.0
+    },
+    {
+        "Type": t["acc_broker"],
+        "Init": brokerage_init,
+        "Final": df.iloc[-1]['Brokerage'],
+        "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(),
+        "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar
+    }
 ]
+
 df_sum = pd.DataFrame(summary_rows)
-sum_col_map = {"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": t["sum_yield"], "Liability": t["sum_liability"]}
-st.table(df_sum.rename(columns=sum_col_map).style.format({
-    t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", t["sum_yield"]: "${:,.0f}", t["sum_liability"]: "${:,.0f}"
+
+# Generate the TOTAL row
+totals = {
+    "Type": t["total_label"],
+    "Init": df_sum["Init"].sum(),
+    "Final": df_sum["Final"].sum(),
+    "Yield": df_sum["Yield"].sum(),
+    "Liability": df_sum["Liability"].sum()
+}
+
+# Append total row to summary
+df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
+
+sum_col_map = {
+    "Type": "Account", 
+    "Init": t["sum_init"], 
+    "Final": t["sum_final"], 
+    "Yield": t["sum_yield"], 
+    "Liability": t["sum_liability"]
+}
+
+st.table(df_final_sum.rename(columns=sum_col_map).style.format({
+    t["sum_init"]: "${:,.0f}", 
+    t["sum_final"]: "${:,.0f}", 
+    t["sum_yield"]: "${:,.0f}", 
+    t["sum_liability"]: "${:,.0f}"
 }))
