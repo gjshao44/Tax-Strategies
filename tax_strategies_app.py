@@ -27,6 +27,8 @@ LANG_MAP = {
         "kpi_nw": "Estimated Final NW (Year 15)",
         "kpi_tax": "Total Federal Tax Paid",
         "kpi_roth": "Total Roth Reservoir",
+        "kpi_total_outflow": "Total 15-Yr Outflow",
+        "kpi_cap_outflow": "Total living expenses plus all federal taxes paid.",        
         "kpi_cap_init": "Your starting capital across all accounts.",
         "kpi_cap_nw": "Total capital remaining across all accounts.",
         "kpi_cap_tax": "Cumulative tax burden over the 15-year period.",
@@ -83,10 +85,12 @@ LANG_MAP = {
         "kpi_nw": "预计最终净资产 (第15年)",
         "kpi_tax": "联邦税总支出",
         "kpi_roth": "Roth 账户储备",
-        "kpi_cap_init": "您的账户初始总资本。",        
-        "kpi_cap_nw": "所有账户中的剩余总资本。",
-        "kpi_cap_tax": "15年期间累计的税务负担。",
-        "kpi_cap_roth": "可供继承或后期使用的最终免税余额。",
+        "kpi_total_outflow": "15年总支出",
+        "kpi_cap_outflow": "总生活支出与联邦税收之和",        
+        "kpi_cap_init": "您的账户初始总资本",        
+        "kpi_cap_nw": "所有账户中的剩余总资本",
+        "kpi_cap_tax": "15年期间累计的税务负担",
+        "kpi_cap_roth": "可供继承或后期使用的最终免税余额",
         "roadmap_h": "退休财务路线图 - 始于",
         "summary_h": "📊 战略账户总结 (15年累计)",
         "sidebar_timeline": "⏳ 1. 退休时间轴",
@@ -194,7 +198,7 @@ def calculate_roadmap():
         if age_h == rmd_age_h: ev.append(t["event_hrmd"])
         if age_w == rmd_age_w: ev.append(t["event_wrmd"])
 
-# 2. SMART CONVERSION STOP LOGIC
+        # 2. SMART CONVERSION STOP LOGIC
         active_conversion = roth_conv
         stop_reason = ""
 
@@ -242,6 +246,7 @@ def calculate_roadmap():
         deduct = (32200 + (2 if age_h >= 65 and age_w >= 65 else 1) * 1650) * inf_factor
         taxable_inc = max(0, agi - deduct)
         fed_tax = (max(0, taxable_inc - (98900 * inf_factor)) * 0.15) + (min(taxable_inc, 98900 * inf_factor) * 0.11)
+        target_expense = (annual_expense * inf_factor) + fed_tax        
         
         # 5. Waterfall Withdrawals
         target_expense = (annual_expense * inf_factor) + fed_tax
@@ -282,6 +287,7 @@ def calculate_roadmap():
             "INPUT: SS": total_ss, "LEVER: Roth": active_conversion, "LEVER: Cap Gains": annual_ltcg,
             "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
+            "raw_outflow": target_expense,          
             "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
             "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf_factor) else "🚩 Above",
             "🚨 Important Events": ", ".join(ev),
@@ -306,7 +312,7 @@ df = calculate_roadmap()
 
 # --- KPI SECTION ---
 st.subheader(t["kpi_h"])
-kpi0, kpi1, kpi2, kpi3 = st.columns(4)
+kpi0, kpi1, kpi2, kpi3, kpi4 = st.columns(5)
 
 # New Initial Net Worth Item
 with kpi0:
@@ -319,12 +325,19 @@ with kpi1:
     st.caption(t["kpi_cap_nw"])
 
 with kpi2:
+# Sum the total outflow (Living + Tax)
+    total_outflow = df["raw_outflow"].sum()
+    st.metric(t["kpi_total_outflow"], f"${total_outflow:,.0f}")
+    st.caption(t["kpi_cap_outflow"])
+
+with kpi3:
     st.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
     st.caption(t["kpi_cap_tax"])
 
-with kpi3:
+with kpi4:
     st.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
     st.caption(t["kpi_cap_roth"])
+
 st.divider()
 
 # --- ROADMAP TABLE ---
