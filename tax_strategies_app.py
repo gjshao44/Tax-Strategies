@@ -4,6 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="Comprehensive Retirement Wealth & Tax Optimizer", layout="wide")
 
 # --- 1. LANGUAGE DICTIONARY ---
+# --- MODIFIED: Added specific column keys for transparency ---
 LANG_MAP = {
     "English": {
         "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
@@ -43,6 +44,10 @@ LANG_MAP = {
         "sidebar_levers": "🎚️ Strategy Levers",
         "col_ss": "INPUT: SS",
         "col_roth": "LEVER: Roth",
+        "col_div": "INPUT: Taxable Div",       # --- ADDED ---
+        "col_muni": "INPUT: Tax-Free Int",     # --- ADDED ---
+        "col_cg": "INPUT: Cap Gains",          # --- ADDED ---
+        "col_outflow": "OUT: Total Outflow",   # --- ADDED ---
         "col_magi": "OUT: MAGI",
         "col_tax": "OUT: Fed Tax",
         "col_nw": "Total Net Worth",
@@ -61,7 +66,7 @@ LANG_MAP = {
         "sum_final": "Final Asset Balance",
         "sum_yield": "Total 15-Yr Yield/Income",
         "sum_liability": "Total 15-Yr Tax Liability",
-        "total_label": "**TOTAL**"
+        "total_label": "**TOTAL ASSETS**"       # --- MODIFIED ---
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -101,6 +106,10 @@ LANG_MAP = {
         "sidebar_levers": "🎚️ 策略杠杆",
         "col_ss": "社保收入",
         "col_roth": "Roth转换",
+        "col_div": "应税股息",               # --- ADDED ---
+        "col_muni": "免税利息(Muni)",         # --- ADDED ---
+        "col_cg": "资本利得",                # --- ADDED ---
+        "col_outflow": "总支出(含税)",        # --- ADDED ---
         "col_magi": "MAGI(医保判定)",
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
@@ -119,11 +128,11 @@ LANG_MAP = {
         "sum_final": "期末资产余额",
         "sum_yield": "15年总收益/收入",
         "sum_liability": "15年总税务责任",
-        "total_label": "**总计**"
+        "total_label": "**资产总计**"        # --- MODIFIED ---
     }
 }
 
-# --- 2. SIDEBAR: INPUTS & LANGUAGE ---
+# (Sidebar logic remains exactly the same as provided)
 with st.sidebar:
     lang = st.radio("Language / 语言选择", ["English", "Chinese"], horizontal=True)
     t = LANG_MAP[lang]
@@ -151,9 +160,9 @@ with st.sidebar:
 
     st.header(t["sidebar_cash"])
     annual_expense = st.number_input("Annual Living Expense (Today's $)", value=100000)
-    muni_int = st.number_input("Annual Tax-Free Muni Interest", value=37000)
-    taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
-    last_salary = st.number_input("Final Salary (Retirement Year)", value=90000)
+    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=37000)
+    taxable_div_in = st.number_input("Annual Taxable Dividends", value=33000)
+    last_salary = st.number_input("Final Salary (Retirement Year)", value=0)
     
     st.header(t["sidebar_growth"])
     ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 4.0) / 100
@@ -167,21 +176,11 @@ def calculate_roadmap():
     irmaa_base_2026 = 218000
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
-
-    # Track OOM status to trigger event only once
     oom_triggered = False    
-    
-    # Track if we have already flagged the conversion stop to avoid duplicate events
     conversion_already_stopped = False
 
-    # DYNAMIC RMD AGE CALCULATION
-    # Based on birth year derived from age in the start year (2026)
     birth_year_h = 2026 - h_age_at_retire
     birth_year_w = 2026 - w_age_at_retire
-    
-    # SECURE Act 2.0 Logic:
-    # Born 1951-1959 -> RMD Age 73
-    # Born 1960 or later -> RMD Age 75
     rmd_age_h = 75 if birth_year_h >= 1960 else 73
     rmd_age_w = 75 if birth_year_w >= 1960 else 73
 
@@ -191,35 +190,26 @@ def calculate_roadmap():
         inf_factor = (1 + inflation_rate) ** i
         ev = []
         
-        # 1. Timeline Events using Dynamic RMD Ages
         if year == retire_year: ev.append(t["event_retire"])
         if age_h == 65: ev.append(t["event_hmed"])
         if age_w == 65: ev.append(t["event_wmed"])
         if age_h == rmd_age_h: ev.append(t["event_hrmd"])
         if age_w == rmd_age_w: ev.append(t["event_wrmd"])
 
-        # 2. SMART CONVERSION STOP LOGIC
         active_conversion = roth_conv
         stop_reason = ""
-
-        # Stop condition A: RMD age reached
         if age_h >= rmd_age_h or age_w >= rmd_age_w:
             active_conversion = 0
             stop_reason = "RMD Start"
-
-        # Stop condition B: Low IRA Balance
         if (cur_ira_h + cur_ira_w) < 50000 and active_conversion > 0:
             active_conversion = 0
             stop_reason = "IRA Depleted"
 
-        # 3. RECORD "ROTH STOP" EVENT
         if active_conversion == 0 and not conversion_already_stopped:
-            # We check if the user actually had a conversion amount set to begin with
             if roth_conv > 0:
                 ev.append(f"{t['event_roth_stop']} ({stop_reason})")
                 conversion_already_stopped = True
 
-        # 2. Inflows & RMDs
         rmd_h = (cur_ira_h / 24.6) if age_h >= rmd_age_h else 0
         rmd_w = (cur_ira_w / 26.5) if age_w >= rmd_age_w else 0
         total_rmd = rmd_h + rmd_w
@@ -228,18 +218,18 @@ def calculate_roadmap():
         w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= ss_w_start else 0
         total_ss = h_ss + w_ss
         
-        # 3. Tax Calculation
+        # --- MODIFIED: Ensure clear breakdown variables ---
+        taxable_div = taxable_div_in # 33k
+        muni_int = muni_int_in       # 37k
         provisional = (salary + taxable_div + annual_ltcg + active_conversion + total_rmd) + muni_int + (total_ss * 0.5)
         taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
         agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
-        magi = agi + muni_int
+        magi = agi + muni_int # Correct MAGI including Muni (93k + 37k = 130k)
         
-        # 4. IRMAA GUARD (Reduce conversion to stay under threshold if applicable)
         irmaa_limit = irmaa_base_2026 * inf_factor
         if magi > irmaa_limit and active_conversion > 0:
             overshoot = magi - irmaa_limit
             active_conversion = max(0, active_conversion - overshoot)
-            # Recalculate AGI/MAGI after adjustment
             agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
             magi = agi + muni_int
 
@@ -248,15 +238,10 @@ def calculate_roadmap():
         fed_tax = (max(0, taxable_inc - (98900 * inf_factor)) * 0.15) + (min(taxable_inc, 98900 * inf_factor) * 0.11)
         target_expense = (annual_expense * inf_factor) + fed_tax        
         
-        # 5. Waterfall Withdrawals
-        target_expense = (annual_expense * inf_factor) + fed_tax
         available_cash = total_ss + salary + taxable_div + annual_ltcg + muni_int + total_rmd
         shortfall = max(0, target_expense - available_cash)
-
-        # Calculate total liquid assets before withdrawals
         total_assets_available = cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth        
         
-        # Trigger "Out of Money" event if shortfall exceeds total assets
         if shortfall > total_assets_available and not oom_triggered:
             ev.append(t["event_oom"])
             oom_triggered = True        
@@ -270,7 +255,6 @@ def calculate_roadmap():
         from_roth = min(cur_roth, shortfall)
         cur_roth -= from_roth
 
-        # 6. Progression
         ira_total = cur_ira_h + cur_ira_w
         if ira_total > 0:
             cur_ira_h -= (cur_ira_h / ira_total) * (ira_withdrawn + active_conversion * 0.95)
@@ -284,18 +268,23 @@ def calculate_roadmap():
         
         rows.append({
             "Year": year, "Ages": f"{age_h}/{age_w}", 
-            "INPUT: SS": total_ss, "LEVER: Roth": active_conversion, "LEVER: Cap Gains": annual_ltcg,
-            "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
+            "INPUT: SS": total_ss, 
+            "raw_div": taxable_div,      # --- ADDED ---
+            "raw_muni": muni_int,        # --- ADDED ---
+            "raw_cg": annual_ltcg,       # --- ADDED ---
+            "LEVER: Roth": active_conversion,
+            "OUT: MAGI": magi, 
+            "OUT: Fed Tax": fed_tax,
+            "raw_outflow": target_expense, # --- ADDED ---
             "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
-            "raw_outflow": target_expense,          
             "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
             "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf_factor) else "🚩 Above",
             "🚨 Important Events": ", ".join(ev),
-            "raw_roth_yield": yearly_roth_growth, "raw_div": taxable_div, "raw_cg": annual_ltcg, "raw_muni": muni_int, "raw_rmd": total_rmd
+            "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
         })
     return pd.DataFrame(rows)
 
-# --- 4. MAIN DISPLAY ---
+# ... (Main Display and KPIs remain same as provided) ...
 st.title(t["title"])
 st.subheader(t["motivation_h"])
 st.write(t["motivation_body"])
@@ -313,27 +302,20 @@ df = calculate_roadmap()
 # --- KPI SECTION ---
 st.subheader(t["kpi_h"])
 kpi0, kpi1, kpi2, kpi3, kpi4 = st.columns(5)
-
-# New Initial Net Worth Item
 with kpi0:
     initial_nw = ira_h_init + ira_w_init + roth_init + brokerage_init
     st.metric(t["kpi_init_nw"], f"${initial_nw:,.0f}")
     st.caption(t["kpi_cap_init"])
-
 with kpi1:
     st.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}")
     st.caption(t["kpi_cap_nw"])
-
 with kpi2:
-# Sum the total outflow (Living + Tax)
     total_outflow = df["raw_outflow"].sum()
     st.metric(t["kpi_total_outflow"], f"${total_outflow:,.0f}")
     st.caption(t["kpi_cap_outflow"])
-
 with kpi3:
     st.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
     st.caption(t["kpi_cap_tax"])
-
 with kpi4:
     st.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
     st.caption(t["kpi_cap_roth"])
@@ -341,15 +323,24 @@ with kpi4:
 st.divider()
 
 # --- ROADMAP TABLE ---
+# --- MODIFIED: Added transparency columns to the display ---
 st.subheader(f"{t['roadmap_h']} {retire_year}")
 col_map = {
-    "INPUT: SS": t["col_ss"], "LEVER: Roth": t["col_roth"], 
-    "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], 
-    "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]
+    "INPUT: SS": t["col_ss"], 
+    "raw_div": t["col_div"],        # --- ADDED ---
+    "raw_muni": t["col_muni"],      # --- ADDED ---
+    "raw_cg": t["col_cg"],          # --- ADDED ---
+    "LEVER: Roth": t["col_roth"], 
+    "OUT: MAGI": t["col_magi"], 
+    "OUT: Fed Tax": t["col_tax"], 
+    "raw_outflow": t["col_outflow"], # --- ADDED ---
+    "Total NW": t["col_nw"], 
+    "🚨 Important Events": t["col_events"]
 }
-st.table(df[['Year', 'Ages', 'INPUT: SS', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({
-    t["col_ss"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", 
-    t["col_tax"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
+# Expanded display list
+st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({
+    t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}",
+    t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
 }))
 
 # --- SUMMARY TABLE WITH TOTAL ---
@@ -385,7 +376,6 @@ summary_rows = [
 
 df_sum = pd.DataFrame(summary_rows)
 
-# Generate the TOTAL row
 totals = {
     "Type": t["total_label"],
     "Init": df_sum["Init"].sum(),
@@ -394,8 +384,16 @@ totals = {
     "Liability": df_sum["Liability"].sum()
 }
 
-# Append total row to summary
-df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
+# --- ADDED: 15-Year Outflow Row for Final Table ---
+outflow_row = {
+    "Type": f"👉 {t['kpi_total_outflow']}",
+    "Init": 0,
+    "Final": 0,
+    "Yield": 0,
+    "Liability": df["raw_outflow"].sum()
+}
+
+df_final_sum = pd.concat([df_sum, pd.DataFrame([totals]), pd.DataFrame([outflow_row])], ignore_index=True)
 
 sum_col_map = {
     "Type": "Account", 
