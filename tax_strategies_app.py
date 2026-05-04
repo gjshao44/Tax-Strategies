@@ -1,131 +1,278 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Dynamic Retirement Roadmap", layout="wide")
+st.set_page_config(page_title="Comprehensive Retirement Wealth & Tax Optimizer", layout="wide")
 
-# --- SIDEBAR: INPUTS ---
+# --- 1. LANGUAGE DICTIONARY ---
+LANG_MAP = {
+    "English": {
+        "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
+        "motivation_h": "✍️ Motivation",
+        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to minimize the next 15 year total federal tax paid, therefore achive optimum total wealth.",
+        "meth_h": "🔬 Methodology",
+        "meth_body": """
+* **Asset Progression:** Tracks growth rates across three buckets (IRA @ 5%, Roth @ 7%, Brokerage @ 4%).
+* **Tax Attribution:** Distributes the annual Federal Tax burden proportionally across taxable yield sources.
+* **IRMAA Monitoring:** Includes Municipal Interest in the MAGI calculation to track Medicare surcharge thresholds.
+* **Waterfall Withdrawal Strategy:** a systematic approach to spending down retirement assets that prioritizes tax efficiency and capital preservation, in the order of taxable accounts, IRA accounts and Roth IRA accounts.
+""",
+        "use_h": "🕹️ How to Use",
+        "use_body": """
+* **Adjust Strategic Levers:** Use the sidebar to simulate different Roth conversion levels and Capital Gain harvesting.
+* **Test Diffrent Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
+* **Observe Total NW:** Watch the final column of the roadmap to see how paying taxes early (in Roth convertion, tax free bond, harvesting capital gains) preserves long-term capital.
+""",
+        "kpi_h": "🚀 15-Year Strategic Outlook",
+        "kpi_nw": "Estimated Final NW (Year 15)",
+        "kpi_tax": "Total Federal Tax Paid",
+        "kpi_roth": "Total Roth Reservoir",
+        "kpi_cap_nw": "Total capital remaining across all accounts.",
+        "kpi_cap_tax": "Cumulative tax burden over the 15-year period.",
+        "kpi_cap_roth": "Final tax-free balance available for heirs or late-life needs.",
+        "roadmap_h": "Retirement Roadmap starting",
+        "summary_h": "📊 Strategic Account Summary (15-Year Cumulative)",
+        "sidebar_timeline": "⏳ 1. Retirement Timeline",
+        "sidebar_assets": "💰 Initial Assets (2026)",
+        "sidebar_growth": "📈 Growth & Expenses",
+        "sidebar_cash": "💵 Cash Flow & Yield",
+        "sidebar_ss": "📈 Social Security",
+        "sidebar_levers": "🎚️ Strategy Levers",
+        "col_ss": "INPUT: SS",
+        "col_roth": "LEVER: Roth",
+        "col_magi": "OUT: MAGI",
+        "col_tax": "OUT: Fed Tax",
+        "col_nw": "Total Net Worth",
+        "col_events": "🚨 Important Events",
+        "event_retire": "Retirement",
+        "event_hmed": "H-Medicare",
+        "event_wmed": "W-Medicare",
+        "event_hrmd": "H-RMD Start",
+        "event_wrmd": "W-RMD Start",
+        "acc_ira": "Tax-Deferred (IRA)",
+        "acc_roth": "Tax-Free (Roth)",
+        "acc_broker": "Taxable (Brokerage/Muni)",
+        "sum_init": "Initial Balance",
+        "sum_final": "Final Asset Balance",
+        "sum_yield": "Total 15-Yr Yield/Income",
+        "sum_liability": "Total 15-Yr Tax Liability"
+    },
+    "Chinese": {
+        "title": "🛡️ 综合退休财富与税务优化工具",
+        "motivation_h": "✍️ 建立初衷",
+        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是最小化未来 15 年的联邦税总支出，从而实现总财富的最优配置。",
+        "meth_h": "🔬 模拟方法论",
+        "meth_body": """
+* **资产演进:** 追踪三大类账户的增长（IRA @ 5%, Roth @ 7%, 经纪账户 @ 4%）。
+* **税务归属:** 将年度联邦税负担按比例分配到各个应税收益来源中。
+* **IRMAA 监测:** 将市政债券利息纳入 MAGI 计算，以追踪医保附加费 (Medicare surcharge) 的阈值。
+* **瀑布式提款策略:** 一种系统化的提款方式，优先考虑税务效率和资本保全，提款顺序依次为：应税账户、IRA 账户、最后是 Roth IRA 账户。
+""",
+        "use_h": "🕹️ 使用说明",
+        "use_body": """
+* **调整策略杠杆:** 使用侧边栏模拟不同的 Roth 转换水平和资本利得获取。
+* **测试增长与支出场景:** 测试不同的增长假设、通货膨胀率和年度生活支出。
+* **观察总净资产 (Total NW):** 关注路线图的最后一列，观察通过早期纳税（如 Roth 转换、税收减免债券、资本利得变现）如何保护长期资本。
+""",
+        "kpi_h": "🚀 15年战略展望",
+        "kpi_nw": "预计最终净资产 (第15年)",
+        "kpi_tax": "联邦税总支出",
+        "kpi_roth": "Roth 账户储备",
+        "kpi_cap_nw": "所有账户中的剩余总资本。",
+        "kpi_cap_tax": "15年期间累计的税务负担。",
+        "kpi_cap_roth": "可供继承或后期使用的最终免税余额。",
+        "roadmap_h": "退休财务路线图 - 始于",
+        "summary_h": "📊 战略账户总结 (15年累计)",
+        "sidebar_timeline": "⏳ 1. 退休时间轴",
+        "sidebar_assets": "💰 初始资产 (2026)",
+        "sidebar_growth": "📈 增长与支出",
+        "sidebar_cash": "💵 现金流与收益",
+        "sidebar_ss": "📈 社会安全金",
+        "sidebar_levers": "🎚️ 策略杠杆",
+        "col_ss": "社保收入",
+        "col_roth": "Roth转换",
+        "col_magi": "MAGI(医保判定)",
+        "col_tax": "联邦税支出",
+        "col_nw": "总净资产",
+        "col_events": "🚨 重要事件",
+        "event_retire": "退休",
+        "event_hmed": "丈夫医保",
+        "event_wmed": "妻子医保",
+        "event_hrmd": "丈夫RMD开始",
+        "event_wrmd": "妻子RMD开始",
+        "acc_ira": "税收递延 (IRA)",
+        "acc_roth": "免税 (Roth)",
+        "acc_broker": "应税 (经纪账户/市政债)",
+        "sum_init": "初始余额",
+        "sum_final": "期末资产余额",
+        "sum_yield": "15年总收益/收入",
+        "sum_liability": "15年总税务责任"
+    }
+}
+
+# --- 2. SIDEBAR: INPUTS & LANGUAGE ---
 with st.sidebar:
-    st.header("⏳ 1. Retirement Timeline")
+    lang = st.radio("Language / 语言选择", ["English", "Chinese"], horizontal=True)
+    t = LANG_MAP[lang]
+    
+    st.header(t["sidebar_timeline"])
     retire_year = st.number_input("Full Retirement Year", value=2026)
     h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=64)
-    w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=69)
-    filing_status = st.selectbox("Filing Status", ["Married Filing Jointly", "Single"])
+    w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=64)
 
-    st.header("💰 Assets & Income")
-    last_salary = st.number_input("Final Annual Salary", value=90000)
+    st.header(t["sidebar_assets"])
     ira_h_init = st.number_input("Husband IRA Balance ($)", value=1500000)
     ira_w_init = st.number_input("Wife IRA Balance ($)", value=10000)
-    muni_int = st.number_input("Annual Muni Interest", value=37000)
-    taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
+    roth_init = st.number_input("Roth IRA Balance ($)", value=100000)
+    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=500000)
     
-    st.header("📈 Social Security")
+    st.header(t["sidebar_growth"])
+    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 5.0) / 100
+    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 7.0) / 100
+    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 4.0) / 100
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=80000)
+    inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
+
+    st.header(t["sidebar_cash"])
+    muni_int = st.number_input("Annual Tax-Free Muni Interest", value=37000)
+    taxable_div = st.number_input("Annual Taxable Dividends", value=33000)
+    last_salary = st.number_input("Final Salary (Retirement Year)", value=90000)
+    
+    st.header(t["sidebar_ss"])
     ss_h_monthly = st.number_input("H Monthly SS ($)", value=4000)
     ss_h_start = st.number_input("H Start Year", value=2029)
-    ss_w_monthly = st.number_input("W Monthly SS ($)", value=1200)
-    ss_w_start = st.number_input("W Start Year", value=2027)
+    ss_w_monthly = st.number_input("W Monthly SS ($)", value=3000)
+    ss_w_start = st.number_input("W Start Year", value=2029)
 
-    st.header("🎚️ Strategy Levers")
+    st.header(t["sidebar_levers"])
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 100000, 40000, step=5000)
-    annual_ltcg = st.slider("Annual Cap Gains ($)", 0, 100000, 20000, step=5000)
+    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 100000, 20000, step=5000)
 
-# --- CALCULATION ENGINE ---
+# --- 3. CALCULATION ENGINE ---
 def calculate_roadmap():
     rows = []
-    # 2026 Base Parameters (IRS/Medicare)
-    std_deduct_base = 32200
-    sr_addon_base = 1650
-    bonus_65_base = 6000
     irmaa_base_2026 = 218000
-    
-    cur_ira_h = ira_h_init
-    cur_ira_w = ira_w_init
+    cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
+    cur_roth, cur_brokerage = roth_init, brokerage_init
 
     for i in range(15):
         year = retire_year + i
-        age_h = h_age_at_retire + i
-        age_w = w_age_at_retire + i
-        inf = (1.025 ** i)
-        
-        # 1. Logic-based Events
+        age_h, age_w = h_age_at_retire + i, w_age_at_retire + i
+        inf_factor = (1 + inflation_rate) ** i
         ev = []
-        if year == retire_year: ev.append("Retirement")
-        if age_h == 65: ev.append("H-Medicare")
-        if age_w == 73: ev.append("W-RMD Starts")
-        if age_h == 75: ev.append("H-RMD Starts")
-        if year == 2029: ev.append("OBBBA Bonus Sunsets")
         
-        # 2. Separate RMD Calculations (SECURE 2.0 Logic)
+        if year == retire_year: ev.append(t["event_retire"])
+        if age_h == 65: ev.append(t["event_hmed"])
+        if age_w == 65: ev.append(t["event_wmed"])
+        if age_h == 75: ev.append(t["event_hrmd"])
+        if age_w == 73: ev.append(t["event_wrmd"])
+
         rmd_h = (cur_ira_h / 24.6) if age_h >= 75 else 0
         rmd_w = (cur_ira_w / 26.5) if age_w >= 73 else 0
         total_rmd = rmd_h + rmd_w
-        
-        # 3. Income Streams
-        # Salary is only paid in the year of retirement (assuming 6 months/partial)
         salary = last_salary if year == retire_year else 0
-        h_ss = (ss_h_monthly * 12 * inf) if year >= ss_h_start else 0
-        w_ss_base = (ss_w_monthly * 12 * inf) if year >= ss_w_start else 0
-        w_spousal = (h_ss * 0.5) if (year >= ss_w_start and year >= ss_h_start) else 0
-        w_ss = max(w_ss_base, w_spousal)
+        h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
+        w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= ss_w_start else 0
         total_ss = h_ss + w_ss
         
-        # 4. Tax Calculations
         provisional = (salary + taxable_div + annual_ltcg + roth_conv + total_rmd) + muni_int + (total_ss * 0.5)
-        taxable_ss = total_ss * 0.85 if provisional > 44000 else (total_ss * 0.5 if provisional > 32000 else 0)
-        
+        taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
         agi = salary + taxable_div + annual_ltcg + roth_conv + taxable_ss + total_rmd
         magi = agi + muni_int
-        
-        # Deductions & Bonus Phase-out
-        num_65 = (1 if age_h >= 65 else 0) + (1 if age_w >= 65 else 0)
-        sen_bonus = (num_65 * bonus_65_base) if year <= 2028 else 0
-        if magi > 150000 and sen_bonus > 0:
-            sen_bonus = max(0, sen_bonus - (magi - 150000) * 0.06)
-            
-        deduct = (std_deduct_base * inf) + (num_65 * sr_addon_base * inf) + sen_bonus
+        deduct = (32200 + (2 if age_h >= 65 and age_w >= 65 else 1) * 1650) * inf_factor
         taxable_inc = max(0, agi - deduct)
+        fed_tax = (max(0, taxable_inc - (98900 * inf_factor)) * 0.15) + (min(taxable_inc, 98900 * inf_factor) * 0.11)
         
-        # Tax Estimate (Layered Bracket Approx)
-        fed_tax = (max(0, taxable_inc - (98900 * inf)) * 0.15) + (min(taxable_inc, 98900 * inf) * 0.11)
+        target_expense = (annual_expense * inf_factor) + fed_tax
+        available_cash = total_ss + salary + taxable_div + annual_ltcg + muni_int + total_rmd
+        shortfall = max(0, target_expense - available_cash)
         
-        # 5. Asset Updates
-        cur_ira_h = (cur_ira_h - rmd_h - (roth_conv * 0.95)) * 1.05
-        cur_ira_w = (cur_ira_w - rmd_w - (roth_conv * 0.05)) * 1.05
+        from_broker = min(cur_brokerage, shortfall)
+        cur_brokerage -= from_broker
+        shortfall -= from_broker
+        from_ira = min(cur_ira_h + cur_ira_w, shortfall * 1.15)
+        ira_withdrawn = from_ira
+        shortfall = max(0, shortfall - (from_ira / 1.15))
+        from_roth = min(cur_roth, shortfall)
+        cur_roth -= from_roth
+
+        ira_total = cur_ira_h + cur_ira_w
+        if ira_total > 0:
+            cur_ira_h -= (cur_ira_h / ira_total) * ira_withdrawn
+            cur_ira_w -= (cur_ira_w / ira_total) * ira_withdrawn
+        cur_ira_h = max(0, (cur_ira_h - roth_conv * 0.95)) * (1 + ira_growth)
+        cur_ira_w = max(0, (cur_ira_w - roth_conv * 0.05)) * (1 + ira_growth)
+        yearly_roth_growth = cur_roth * roth_growth
+        cur_roth = (cur_roth + roth_conv + yearly_roth_growth)
+        cur_brokerage *= (1 + broker_growth)
         
         rows.append({
-            "Year": year,
-            "Ages(H/W)": f"{age_h}/{age_w}",
-            "INPUT: SS": f"${total_ss:,.0f}",
-            "LEVER: Roth": f"${roth_conv:,.0f}",
-            "LEVER: Cap Gains": f"${annual_ltcg:,.0f}",
-            "OUT: AGI": f"${agi:,.0f}",
-            "OUT: MAGI(IRMAA)": f"${magi:,.0f}",
-            "OUT: Fed Tax": f"${fed_tax:,.0f}",
-            "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf) else "🚩 Above",
-            "🚨 Important Events": ", ".join(ev)
+            "Year": year, "Ages": f"{age_h}/{age_w}", 
+            "INPUT: SS": total_ss, "LEVER: Roth": roth_conv, "LEVER: Cap Gains": annual_ltcg,
+            "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
+            "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
+            "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
+            "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf_factor) else "🚩 Above",
+            "🚨 Important Events": ", ".join(ev),
+            "raw_roth_yield": yearly_roth_growth, "raw_div": taxable_div, "raw_cg": annual_ltcg, "raw_muni": muni_int, "raw_rmd": total_rmd
         })
     return pd.DataFrame(rows)
 
-# --- DISPLAY ---
-st.subheader(f"Retirement Roadmap starting {retire_year}")
+# --- 4. MAIN DISPLAY ---
+st.title(t["title"])
+st.subheader(t["motivation_h"])
+st.write(t["motivation_body"])
+
+st.subheader(t["meth_h"])
+st.write(t["meth_body"])
+
+st.subheader(t["use_h"])
+st.write(t["use_body"])
+
+st.divider()
+
 df = calculate_roadmap()
-st.table(df)
 
-# --- ADD THIS TO THE BOTTOM OF YOUR tax_app.py ---
+# --- KPI SECTION ---
+st.subheader(t["kpi_h"])
+kpi1, kpi2, kpi3 = st.columns(3)
+with kpi1:
+    st.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}")
+    st.caption(t["kpi_cap_nw"])
+with kpi2:
+    st.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
+    st.caption(t["kpi_cap_tax"])
+with kpi3:
+    st.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
+    st.caption(t["kpi_cap_roth"])
 
-st.markdown("---")
-st.subheader("🏁 Strategic Execution Guide")
+st.divider()
 
-# Dynamic Commentary based on the DataFrame (df)
-latest_magi = df.iloc[5]["OUT: MAGI(IRMAA)"].replace('$','').replace(',','')
-if float(latest_magi) < 200000:
-    st.success("✅ **Roth Capacity:** You have significant 'Tax Room.' Consider increasing Roth conversions in the early years to reduce the 2037 RMD spike.")
-else:
-    st.warning("⚠️ **IRMAA Danger:** You are approaching the Medicare surcharge cliff. Monitor your Capital Gains realized in years where SS and RMDs overlap.")
+# --- ROADMAP TABLE ---
+st.subheader(f"{t['roadmap_h']} {retire_year}")
+col_map = {
+    "INPUT: SS": t["col_ss"], "LEVER: Roth": t["col_roth"], 
+    "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], 
+    "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]
+}
+st.table(df[['Year', 'Ages', 'INPUT: SS', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({
+    t["col_ss"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", 
+    t["col_tax"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
+}))
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.info("**Watch the Bonus:**\nAfter 2028, the OBBBA senior bonus disappears. Your 'Taxable Income' will jump even if your actual income stays the same.")
-with col2:
-    st.info("**The RMD Cliff:**\nIn 2030 (Wife) and 2037 (Husband), your income becomes involuntary. Use the years 2027-2029 to lower your future RMD-heavy tax bill.")
-with col3:
-    st.info("**CG Harvest:**\nAim to realize Capital Gains while 'Taxable Income' is below $100k (indexed) to keep your Federal CG rate at 0%.")
+# --- SUMMARY TABLE ---
+st.divider()
+st.subheader(t["summary_h"])
+total_tax = df["OUT: Fed Tax"].sum()
+total_inc = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
+tax_rate = total_tax / max(1, total_inc)
+
+summary_rows = [
+    {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_rate},
+    {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
+    {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_rate}
+]
+df_sum = pd.DataFrame(summary_rows)
+sum_col_map = {"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": t["sum_yield"], "Liability": t["sum_liability"]}
+st.table(df_sum.rename(columns=sum_col_map).style.format({
+    t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", t["sum_yield"]: "${:,.0f}", t["sum_liability"]: "${:,.0f}"
+}))
