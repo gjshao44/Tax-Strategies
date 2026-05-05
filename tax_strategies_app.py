@@ -385,15 +385,15 @@ totals = {
 }
 
 # --- ADDED: 15-Year Outflow Row for Final Table ---
-outflow_row = {
-    "Type": f"👉 {t['kpi_total_outflow']}",
-    "Init": 0,
-    "Final": 0,
-    "Yield": 0,
-    "Liability": df["raw_outflow"].sum()
-}
+# outflow_row = {
+#     "Type": f"👉 {t['kpi_total_outflow']}",
+#     "Init": 0,
+#     "Final": 0,
+#     "Yield": 0,
+#     "Liability": df["raw_outflow"].sum()
+# }
 
-df_final_sum = pd.concat([df_sum, pd.DataFrame([totals]), pd.DataFrame([outflow_row])], ignore_index=True)
+df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
 
 sum_col_map = {
     "Type": "Account", 
