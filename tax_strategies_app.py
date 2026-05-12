@@ -42,6 +42,7 @@ LANG_MAP = {
         "sidebar_cash": "💵 Cash Flow, Yield & Expenses",
         "sidebar_ss": "📈 Social Security",
         "sidebar_levers": "🎚️ Strategy Levers",
+        "filing_status": "Tax Filing Status",
         "qd_ratio": "Qualified Dividend %",
         "col_ss": "INPUT: SS",
         "col_roth": "LEVER: Roth",
@@ -105,6 +106,7 @@ LANG_MAP = {
         "sidebar_cash": "💵 现金流,收益与支出",
         "sidebar_ss": "📈 社会安全金",
         "sidebar_levers": "🎚️ 策略杠杆",
+        "filing_status": "报税状态",
         "qd_ratio": "符合条件的股息比例 (Qualified %)",
         "col_ss": "社保收入",
         "col_roth": "Roth转换",
@@ -151,6 +153,7 @@ with st.sidebar:
     brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=1000000)
 
     st.header(t["sidebar_levers"])
+    tax_status = st.selectbox(t["filing_status"], ["MFJ", "Single", "MFS"])
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, 40000, step=5000)
     annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, 20000, step=10000)
 
@@ -174,10 +177,16 @@ with st.sidebar:
     inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
 
 # --- 3. CORE TAX CALCULATOR ---
-def calculate_comprehensive_tax(taxable_inc, ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss):
-    # Ordinary Brackets (MFJ 2026)
+def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status):
+    # Ordinary Brackets (2026 Estimated)
     ord_tax = 0
-    brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24)]
+    if status == "MFJ":
+        brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24)]
+        top_rate = 0.32
+    else: # Single or MFS
+        brackets = [(11600, 0.10), (47150, 0.12), (100525, 0.22), (191950, 0.24)]
+        top_rate = 0.32
+
     prev_limit = 0
     for limit, rate in brackets:
         adj_limit = limit * inf_factor
@@ -186,11 +195,15 @@ def calculate_comprehensive_tax(taxable_inc, ordinary_taxable, qd_ltcg_total, ma
             ord_tax += taxable_in_bracket * rate
         prev_limit = adj_limit
     if ordinary_taxable > prev_limit:
-        ord_tax += (ordinary_taxable - prev_limit) * 0.32
+        ord_tax += (ordinary_taxable - prev_limit) * top_rate
 
     # Graduated LTCG/QD Brackets (0%, 15%, 20%)
-    zero_limit = 94050 * inf_factor
-    fifteen_limit = 583750 * inf_factor
+    if status == "MFJ":
+        zero_limit = 94050 * inf_factor
+        fifteen_limit = 583750 * inf_factor
+    else: # Single or MFS
+        zero_limit = 47025 * inf_factor
+        fifteen_limit = 291850 * inf_factor
     
     ltcg_in_zero = max(0, min(qd_ltcg_total, zero_limit - ordinary_taxable))
     ltcg_in_fifteen = max(0, min(qd_ltcg_total - ltcg_in_zero, fifteen_limit - max(ordinary_taxable, zero_limit)))
@@ -199,7 +212,7 @@ def calculate_comprehensive_tax(taxable_inc, ordinary_taxable, qd_ltcg_total, ma
     ltcg_tax = (ltcg_in_fifteen * 0.15) + (ltcg_in_twenty * 0.20)
 
     # NIIT (3.8%)
-    niit_threshold = 250000 * inf_factor
+    niit_threshold = (250000 if status == "MFJ" else 200000 if status == "Single" else 125000) * inf_factor
     tax_niit = 0
     if magi > niit_threshold:
         investment_income = qd_ltcg_total + max(0, (ordinary_taxable - taxable_ss))
@@ -210,7 +223,7 @@ def calculate_comprehensive_tax(taxable_inc, ordinary_taxable, qd_ltcg_total, ma
 # --- 4. CALCULATION ENGINE ---
 def calculate_roadmap():
     rows = []
-    irmaa_base_2026 = 218000
+    irmaa_base_2026 = 218000 if tax_status == "MFJ" else 109000
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
     oom_triggered = False    
@@ -269,11 +282,19 @@ def calculate_roadmap():
             ordinary_gross = salary + ord_div + taxable_ss + active_conversion + total_rmd
             magi = ordinary_gross + qd_ltcg_total + muni_int_in
 
-        deduct = (32200 + (2 if age_h >= 65 and age_w >= 65 else 1) * 1650) * inf_factor
-        taxable_inc = max(0, ordinary_gross + qd_ltcg_total - deduct)
+        # Deduction Logic
+        base_deduct = 32200 if tax_status == "MFJ" else 16100
+        extra_deduct = 0
+        if tax_status == "MFJ":
+            if age_h >= 65: extra_deduct += 1650
+            if age_w >= 65: extra_deduct += 1650
+        else:
+            if age_h >= 65: extra_deduct += 1950 # Assuming Single/H-focused
+        
+        deduct = (base_deduct + extra_deduct) * inf_factor
         ord_taxable = max(0, ordinary_gross - deduct)
         
-        fed_tax = calculate_comprehensive_tax(taxable_inc, ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss)
+        fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status)
         
         target_expense = (annual_expense * inf_factor) + fed_tax        
         available_cash = total_ss + salary + taxable_div_in + annual_ltcg + muni_int_in + total_rmd
