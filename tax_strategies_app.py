@@ -42,12 +42,13 @@ LANG_MAP = {
         "sidebar_cash": "💵 Cash Flow, Yield & Expenses",
         "sidebar_ss": "📈 Social Security",
         "sidebar_levers": "🎚️ Strategy Levers",
+        "qd_ratio": "Qualified Dividend %",
         "col_ss": "INPUT: SS",
         "col_roth": "LEVER: Roth",
-        "col_div": "INPUT: Taxable Div",       # --- ADDED ---
-        "col_muni": "INPUT: Tax-Free Int",     # --- ADDED ---
-        "col_cg": "INPUT: Cap Gains",          # --- ADDED ---
-        "col_outflow": "OUT: Total Outflow",   # --- ADDED ---
+        "col_div": "INPUT: Taxable Div",
+        "col_muni": "INPUT: Tax-Free Int",
+        "col_cg": "INPUT: Cap Gains",
+        "col_outflow": "OUT: Total Outflow",
         "col_magi": "OUT: MAGI",
         "col_tax": "OUT: Fed Tax",
         "col_nw": "Total Net Worth",
@@ -66,7 +67,7 @@ LANG_MAP = {
         "sum_final": "Final Asset Balance",
         "sum_yield": "Total 15-Yr Yield/Income",
         "sum_liability": "Total 15-Yr Tax Liability",
-        "total_label": "**TOTAL ASSETS**"       # --- MODIFIED ---
+        "total_label": "**TOTAL ASSETS**"
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -104,12 +105,13 @@ LANG_MAP = {
         "sidebar_cash": "💵 现金流,收益与支出",
         "sidebar_ss": "📈 社会安全金",
         "sidebar_levers": "🎚️ 策略杠杆",
+        "qd_ratio": "符合条件的股息比例 (Qualified %)",
         "col_ss": "社保收入",
         "col_roth": "Roth转换",
-        "col_div": "应税股息",               # --- ADDED ---
-        "col_muni": "免税利息(Muni)",         # --- ADDED ---
-        "col_cg": "资本利得",                # --- ADDED ---
-        "col_outflow": "总支出(含税)",        # --- ADDED ---
+        "col_div": "应税股息",
+        "col_muni": "免税利息(Muni)",
+        "col_cg": "资本利得",
+        "col_outflow": "总支出(含税)",
         "col_magi": "MAGI(医保判定)",
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
@@ -128,11 +130,11 @@ LANG_MAP = {
         "sum_final": "期末资产余额",
         "sum_yield": "15年总收益/收入",
         "sum_liability": "15年总税务责任",
-        "total_label": "**资产总计**"        # --- MODIFIED ---
+        "total_label": "**资产总计**"
     }
 }
 
-# (Sidebar logic remains exactly the same as provided)
+# --- 2. SIDEBAR INPUTS ---
 with st.sidebar:
     lang = st.radio("Language / 语言选择", ["English", "Chinese"], horizontal=True)
     t = LANG_MAP[lang]
@@ -148,29 +150,64 @@ with st.sidebar:
     roth_init = st.number_input("Roth IRA Balance ($)", value=100000)
     brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=1000000)
 
+    st.header(t["sidebar_levers"])
+    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, 40000, step=5000)
+    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, 20000, step=10000)
+
+    st.header(t["sidebar_cash"])
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=100000)
+    qd_perc = st.slider(t["qd_ratio"], 0, 100, 80) / 100
+    taxable_div_in = st.number_input("Annual Taxable Dividends", value=33000)
+    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=37000)
+    last_salary = st.number_input("Final Salary (Retirement Year)", value=0)
+    
     st.header(t["sidebar_ss"])
     ss_h_monthly = st.number_input("H Monthly SS ($)", value=4000)
     ss_h_start = st.number_input("H Start Year", value=2029)
     ss_w_monthly = st.number_input("W Monthly SS ($)", value=3000)
     ss_w_start = st.number_input("W Start Year", value=2029)
 
-    st.header(t["sidebar_levers"])
-    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 100000, 40000, step=5000)
-    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 100000, 20000, step=5000)
-
-    st.header(t["sidebar_cash"])
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=100000)
-    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=37000)
-    taxable_div_in = st.number_input("Annual Taxable Dividends", value=33000)
-    last_salary = st.number_input("Final Salary (Retirement Year)", value=0)
-    
     st.header(t["sidebar_growth"])
     ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 4.0) / 100
     roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 5.0) / 100
     broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 3.0) / 100
     inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
 
-# --- 3. CALCULATION ENGINE ---
+# --- 3. CORE TAX CALCULATOR ---
+def calculate_comprehensive_tax(taxable_inc, ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss):
+    # Ordinary Brackets (MFJ 2026)
+    ord_tax = 0
+    brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24)]
+    prev_limit = 0
+    for limit, rate in brackets:
+        adj_limit = limit * inf_factor
+        taxable_in_bracket = min(ordinary_taxable, adj_limit) - prev_limit
+        if taxable_in_bracket > 0:
+            ord_tax += taxable_in_bracket * rate
+        prev_limit = adj_limit
+    if ordinary_taxable > prev_limit:
+        ord_tax += (ordinary_taxable - prev_limit) * 0.32
+
+    # Graduated LTCG/QD Brackets (0%, 15%, 20%)
+    zero_limit = 94050 * inf_factor
+    fifteen_limit = 583750 * inf_factor
+    
+    ltcg_in_zero = max(0, min(qd_ltcg_total, zero_limit - ordinary_taxable))
+    ltcg_in_fifteen = max(0, min(qd_ltcg_total - ltcg_in_zero, fifteen_limit - max(ordinary_taxable, zero_limit)))
+    ltcg_in_twenty = max(0, qd_ltcg_total - ltcg_in_zero - ltcg_in_fifteen)
+    
+    ltcg_tax = (ltcg_in_fifteen * 0.15) + (ltcg_in_twenty * 0.20)
+
+    # NIIT (3.8%)
+    niit_threshold = 250000 * inf_factor
+    tax_niit = 0
+    if magi > niit_threshold:
+        investment_income = qd_ltcg_total + max(0, (ordinary_taxable - taxable_ss))
+        tax_niit = min(investment_income, magi - niit_threshold) * 0.038
+        
+    return ord_tax + ltcg_tax + tax_niit
+
+# --- 4. CALCULATION ENGINE ---
 def calculate_roadmap():
     rows = []
     irmaa_base_2026 = 218000
@@ -205,10 +242,9 @@ def calculate_roadmap():
             active_conversion = 0
             stop_reason = "IRA Depleted"
 
-        if active_conversion == 0 and not conversion_already_stopped:
-            if roth_conv > 0:
-                ev.append(f"{t['event_roth_stop']} ({stop_reason})")
-                conversion_already_stopped = True
+        if active_conversion == 0 and not conversion_already_stopped and roth_conv > 0:
+            ev.append(f"{t['event_roth_stop']} ({stop_reason})")
+            conversion_already_stopped = True
 
         rmd_h = (cur_ira_h / 24.6) if age_h >= rmd_age_h else 0
         rmd_w = (cur_ira_w / 26.5) if age_w >= rmd_age_w else 0
@@ -218,33 +254,34 @@ def calculate_roadmap():
         w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= ss_w_start else 0
         total_ss = h_ss + w_ss
         
-        # --- MODIFIED: Ensure clear breakdown variables ---
-        taxable_div = taxable_div_in # 33k
-        muni_int = muni_int_in       # 37k
-        provisional = (salary + taxable_div + annual_ltcg + active_conversion + total_rmd) + muni_int + (total_ss * 0.5)
-        taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
-        agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
-        magi = agi + muni_int # Correct MAGI including Muni (93k + 37k = 130k)
+        qual_div = taxable_div_in * qd_perc
+        ord_div = taxable_div_in * (1 - qd_perc)
         
+        provisional = (salary + ord_div + qual_div + annual_ltcg + active_conversion + total_rmd) + muni_int_in + (total_ss * 0.5)
+        taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
+        ordinary_gross = salary + ord_div + taxable_ss + active_conversion + total_rmd
+        qd_ltcg_total = qual_div + annual_ltcg
+        
+        magi = ordinary_gross + qd_ltcg_total + muni_int_in
         irmaa_limit = irmaa_base_2026 * inf_factor
         if magi > irmaa_limit and active_conversion > 0:
-            overshoot = magi - irmaa_limit
-            active_conversion = max(0, active_conversion - overshoot)
-            agi = salary + taxable_div + annual_ltcg + active_conversion + taxable_ss + total_rmd
-            magi = agi + muni_int
+            active_conversion = max(0, active_conversion - (magi - irmaa_limit))
+            ordinary_gross = salary + ord_div + taxable_ss + active_conversion + total_rmd
+            magi = ordinary_gross + qd_ltcg_total + muni_int_in
 
         deduct = (32200 + (2 if age_h >= 65 and age_w >= 65 else 1) * 1650) * inf_factor
-        taxable_inc = max(0, agi - deduct)
-        fed_tax = (max(0, taxable_inc - (98900 * inf_factor)) * 0.15) + (min(taxable_inc, 98900 * inf_factor) * 0.11)
+        taxable_inc = max(0, ordinary_gross + qd_ltcg_total - deduct)
+        ord_taxable = max(0, ordinary_gross - deduct)
+        
+        fed_tax = calculate_comprehensive_tax(taxable_inc, ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss)
+        
         target_expense = (annual_expense * inf_factor) + fed_tax        
-        
-        available_cash = total_ss + salary + taxable_div + annual_ltcg + muni_int + total_rmd
+        available_cash = total_ss + salary + taxable_div_in + annual_ltcg + muni_int_in + total_rmd
         shortfall = max(0, target_expense - available_cash)
-        total_assets_available = cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth        
         
-        if shortfall > total_assets_available and not oom_triggered:
+        if shortfall > (cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth) and not oom_triggered:
             ev.append(t["event_oom"])
-            oom_triggered = True        
+            oom_triggered = True
 
         from_broker = min(cur_brokerage, shortfall)
         cur_brokerage -= from_broker
@@ -267,145 +304,56 @@ def calculate_roadmap():
         cur_brokerage *= (1 + broker_growth)
         
         rows.append({
-            "Year": year, "Ages": f"{age_h}/{age_w}", 
-            "INPUT: SS": total_ss, 
-            "raw_div": taxable_div,      # --- ADDED ---
-            "raw_muni": muni_int,        # --- ADDED ---
-            "raw_cg": annual_ltcg,       # --- ADDED ---
-            "LEVER: Roth": active_conversion,
-            "OUT: MAGI": magi, 
-            "OUT: Fed Tax": fed_tax,
-            "raw_outflow": target_expense, # --- ADDED ---
-            "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, "Brokerage": cur_brokerage,
-            "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
-            "IRMAA": "✅ Safe" if magi < (irmaa_base_2026 * inf_factor) else "🚩 Above",
-            "🚨 Important Events": ", ".join(ev),
-            "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
+            "Year": year, "Ages": f"{age_h}/{age_w}", "INPUT: SS": total_ss, 
+            "raw_div": taxable_div_in, "raw_muni": muni_int_in, "raw_cg": annual_ltcg,
+            "LEVER: Roth": active_conversion, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
+            "raw_outflow": target_expense, "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, 
+            "Brokerage": cur_brokerage, "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
+            "IRMAA": "✅ Safe" if magi < irmaa_limit else "🚩 Above",
+            "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
         })
     return pd.DataFrame(rows)
 
-# ... (Main Display and KPIs remain same as provided) ...
+# --- 5. UI DISPLAY ---
 st.title(t["title"])
 st.subheader(t["motivation_h"])
 st.write(t["motivation_body"])
 
 st.subheader(t["meth_h"])
-st.write(t["meth_body"])
+st.markdown(t["meth_body"])
 
 st.subheader(t["use_h"])
-st.write(t["use_body"])
-
-st.divider()
+st.markdown(t["use_body"])
 
 df = calculate_roadmap()
 
 # --- KPI SECTION ---
 st.subheader(t["kpi_h"])
-kpi0, kpi1, kpi2, kpi3, kpi4 = st.columns(5)
-with kpi0:
-    initial_nw = ira_h_init + ira_w_init + roth_init + brokerage_init
-    st.metric(t["kpi_init_nw"], f"${initial_nw:,.0f}")
-    st.caption(t["kpi_cap_init"])
-with kpi1:
-    st.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}")
-    st.caption(t["kpi_cap_nw"])
-with kpi2:
-    total_outflow = df["raw_outflow"].sum()
-    st.metric(t["kpi_total_outflow"], f"${total_outflow:,.0f}")
-    st.caption(t["kpi_cap_outflow"])
-with kpi3:
-    st.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
-    st.caption(t["kpi_cap_tax"])
-with kpi4:
-    st.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
-    st.caption(t["kpi_cap_roth"])
+k0, k1, k2, k3, k4 = st.columns(5)
+k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}", help=t["kpi_cap_init"])
+k1.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}", help=t["kpi_cap_nw"])
+k2.metric(t["kpi_total_outflow"], f"${df['raw_outflow'].sum():,.0f}", help=t["kpi_cap_outflow"])
+k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}", help=t["kpi_cap_tax"])
+k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}", help=t["kpi_cap_roth"])
 
 st.divider()
-
-# --- ROADMAP TABLE ---
-# --- MODIFIED: Added transparency columns to the display ---
 st.subheader(f"{t['roadmap_h']} {retire_year}")
-col_map = {
-    "INPUT: SS": t["col_ss"], 
-    "raw_div": t["col_div"],        # --- ADDED ---
-    "raw_muni": t["col_muni"],      # --- ADDED ---
-    "raw_cg": t["col_cg"],          # --- ADDED ---
-    "LEVER: Roth": t["col_roth"], 
-    "OUT: MAGI": t["col_magi"], 
-    "OUT: Fed Tax": t["col_tax"], 
-    "raw_outflow": t["col_outflow"], # --- ADDED ---
-    "Total NW": t["col_nw"], 
-    "🚨 Important Events": t["col_events"]
-}
-# Expanded display list
-st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({
-    t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}",
-    t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"
-}))
+col_map = {"INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]}
+st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"}))
 
-# --- SUMMARY TABLE WITH TOTAL ---
+# Summary Table
 st.divider()
 st.subheader(t["summary_h"])
 total_tax = df["OUT: Fed Tax"].sum()
-total_inc_taxable = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
-tax_per_dollar = total_tax / max(1, total_inc_taxable)
+total_taxable_yield = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
+tax_per_dollar = total_tax / max(1, total_taxable_yield)
 
 summary_rows = [
-    {
-        "Type": t["acc_ira"],
-        "Init": ira_h_init + ira_w_init,
-        "Final": df.iloc[-1]['IRA Bal'],
-        "Yield": df["raw_rmd"].sum(),
-        "Liability": df["raw_rmd"].sum() * tax_per_dollar
-    },
-    {
-        "Type": t["acc_roth"],
-        "Init": roth_init,
-        "Final": df.iloc[-1]['Roth Bal'],
-        "Yield": df["raw_roth_yield"].sum(),
-        "Liability": 0.0
-    },
-    {
-        "Type": t["acc_broker"],
-        "Init": brokerage_init,
-        "Final": df.iloc[-1]['Brokerage'],
-        "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(),
-        "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar
-    }
+    {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_per_dollar},
+    {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
+    {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar}
 ]
-
 df_sum = pd.DataFrame(summary_rows)
-
-totals = {
-    "Type": t["total_label"],
-    "Init": df_sum["Init"].sum(),
-    "Final": df_sum["Final"].sum(),
-    "Yield": df_sum["Yield"].sum(),
-    "Liability": df_sum["Liability"].sum()
-}
-
-# --- ADDED: 15-Year Outflow Row for Final Table ---
-# outflow_row = {
-#     "Type": f"👉 {t['kpi_total_outflow']}",
-#     "Init": 0,
-#     "Final": 0,
-#     "Yield": 0,
-#     "Liability": df["raw_outflow"].sum()
-# }
-
+totals = {"Type": t["total_label"], "Init": df_sum["Init"].sum(), "Final": df_sum["Final"].sum(), "Yield": df_sum["Yield"].sum(), "Liability": df_sum["Liability"].sum()}
 df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
-
-sum_col_map = {
-    "Type": "Account", 
-    "Init": t["sum_init"], 
-    "Final": t["sum_final"], 
-    "Yield": t["sum_yield"], 
-    "Liability": t["sum_liability"]
-}
-
-st.table(df_final_sum.rename(columns=sum_col_map).style.format({
-    t["sum_init"]: "${:,.0f}", 
-    t["sum_final"]: "${:,.0f}", 
-    t["sum_yield"]: "${:,.0f}", 
-    t["sum_liability"]: "${:,.0f}"
-}))
+st.table(df_final_sum.rename(columns={"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": t["sum_yield"], "Liability": t["sum_liability"]}).style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", t["sum_yield"]: "${:,.0f}", t["sum_liability"]: "${:,.0f}"}))
