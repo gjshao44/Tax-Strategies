@@ -246,6 +246,16 @@ def get_rmd_divisor(age):
     }
     return table.get(age, max(1.0, 6.4 - (age - 100) * 0.4))
 
+def get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare):
+    base_irmaa = 218000 * inf_factor
+    t1, t2, t3, t4, t5 = base_irmaa, base_irmaa * (272/218), base_irmaa * (340/218), base_irmaa * (408/218), base_irmaa * (750/218)
+    if magi > t5: return 5, 480 * 12 * num_spouses_medicare * inf_factor
+    if magi > t4: return 4, 440 * 12 * num_spouses_medicare * inf_factor
+    if magi > t3: return 3, 320 * 12 * num_spouses_medicare * inf_factor
+    if magi > t2: return 2, 200 * 12 * num_spouses_medicare * inf_factor
+    if magi > t1: return 1, 80 * 12 * num_spouses_medicare * inf_factor
+    return 0, 0
+
 # --- 4. CALCULATION ENGINE ---
 def calculate_roadmap(conv_override=None, ltcg_override=None):
     rows = []
@@ -321,21 +331,8 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         qd_ltcg_total = qual_div + sim_annual_ltcg
         magi = ordinary_gross + qd_ltcg_total + muni_int_in
         
-        # 5-Tier Medicare IRMAA Surcharge logic
-        base_irmaa = irmaa_base_2026 * inf_factor
-        t1, t2, t3, t4, t5 = base_irmaa, base_irmaa * (272/218), base_irmaa * (340/218), base_irmaa * (408/218), base_irmaa * (750/218)
-        
-        irmaa_tier = 0
-        irmaa_surcharge = 0
         num_spouses_medicare = (1 if age_h >= 65 else 0) + (1 if age_w >= 65 else 0)
-        
-        if magi > t5: irmaa_tier, irmaa_surcharge = 5, 480 * 12 * num_spouses_medicare
-        elif magi > t4: irmaa_tier, irmaa_surcharge = 4, 440 * 12 * num_spouses_medicare
-        elif magi > t3: irmaa_tier, irmaa_surcharge = 3, 320 * 12 * num_spouses_medicare
-        elif magi > t2: irmaa_tier, irmaa_surcharge = 2, 200 * 12 * num_spouses_medicare
-        elif magi > t1: irmaa_tier, irmaa_surcharge = 1, 80 * 12 * num_spouses_medicare
-        
-        irmaa_surcharge *= inf_factor # adjust surcharges for inflation
+        irmaa_tier, irmaa_surcharge = get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare)
 
         # Deduction Logic
         base_deduct = 32200 if tax_status == "MFJ" else 16100
@@ -362,9 +359,39 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         from_broker = min(cur_brokerage, shortfall)
         cur_brokerage -= from_broker
         shortfall -= from_broker
-        from_ira = min(cur_ira_h + cur_ira_w, shortfall * 1.15)
-        ira_withdrawn = from_ira
-        shortfall = max(0, shortfall - (from_ira / 1.15))
+        
+        # --- Mathematical Tax-Feedback Loop for IRA Withdrawals ---
+        ira_withdrawn = 0
+        if shortfall > 0 and (cur_ira_h + cur_ira_w) > 0:
+            gross_needed = shortfall
+            for _ in range(5):
+                test_ord = ord_taxable + gross_needed
+                test_magi = magi + gross_needed
+                
+                # Test the new tax with this gross withdrawal
+                test_fed_tax = calculate_comprehensive_tax(test_ord, qd_ltcg_total, test_magi, inf_factor, taxable_ss, tax_status)
+                test_irmaa_tier, test_irmaa_sur = get_irmaa_surcharge(test_magi, inf_factor, num_spouses_medicare)
+                
+                # The total cash we need to pull out is the original shortfall PLUS the extra tax and IRMAA penalty caused by pulling it out
+                extra_tax = test_fed_tax - fed_tax
+                extra_irmaa = test_irmaa_sur - irmaa_surcharge
+                gross_needed = shortfall + extra_tax + extra_irmaa
+                
+                if gross_needed >= (cur_ira_h + cur_ira_w):
+                    gross_needed = cur_ira_h + cur_ira_w
+                    break
+                    
+            ira_withdrawn = gross_needed
+            # Lock in the finalized values
+            ord_taxable += ira_withdrawn
+            magi += ira_withdrawn
+            fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status)
+            irmaa_tier, irmaa_surcharge = get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare)
+            target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge
+            
+            # Recalculate remaining shortfall (should be close to 0 unless IRA was depleted)
+            shortfall = max(0, target_expense - available_cash - from_broker - ira_withdrawn)
+
         from_roth = min(cur_roth, shortfall)
         cur_roth -= from_roth
 
