@@ -236,6 +236,16 @@ def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_facto
         
     return ord_tax + ltcg_tax + tax_niit
 
+def get_rmd_divisor(age):
+    if age < 73: return 0.0
+    table = {
+        73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,
+        80: 20.2, 81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2,
+        87: 14.4, 88: 13.7, 89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1,
+        94: 9.5, 95: 8.9, 96: 8.4, 97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4
+    }
+    return table.get(age, max(1.0, 6.4 - (age - 100) * 0.4))
+
 # --- 4. CALCULATION ENGINE ---
 def calculate_roadmap(conv_override=None, ltcg_override=None):
     rows = []
@@ -265,12 +275,14 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         if age_h == rmd_age_h: ev.append(t["event_hrmd"])
         if age_w == rmd_age_w: ev.append(t["event_wrmd"])
 
-        active_conversion = sim_roth_conv
+        # Cap conversion at available IRA balance
+        active_conversion = min(sim_roth_conv, cur_ira_h + cur_ira_w)
         stop_reason = ""
+        
         if age_h >= rmd_age_h or age_w >= rmd_age_w:
             active_conversion = 0
             stop_reason = "RMD Start"
-        if (cur_ira_h + cur_ira_w) < 50000 and active_conversion > 0:
+        elif (cur_ira_h + cur_ira_w) <= 1000 and sim_roth_conv > 0:
             active_conversion = 0
             stop_reason = "IRA Depleted"
 
@@ -278,8 +290,10 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
             ev.append(f"{t['event_roth_stop']} ({stop_reason})")
             conversion_already_stopped = True
 
-        rmd_h = (cur_ira_h / 24.6) if age_h >= rmd_age_h else 0
-        rmd_w = (cur_ira_w / 26.5) if age_w >= rmd_age_w else 0
+        divisor_h = get_rmd_divisor(age_h)
+        divisor_w = get_rmd_divisor(age_w)
+        rmd_h = (cur_ira_h / divisor_h) if divisor_h > 0 else 0
+        rmd_w = (cur_ira_w / divisor_w) if divisor_w > 0 else 0
         total_rmd = rmd_h + rmd_w
         salary = last_salary if year == retire_year else 0
         h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
@@ -289,17 +303,39 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         qual_div = taxable_div_in * qd_perc
         ord_div = taxable_div_in * (1 - qd_perc)
         
-        provisional = (salary + ord_div + qual_div + sim_annual_ltcg + active_conversion + total_rmd) + muni_int_in + (total_ss * 0.5)
-        taxable_ss = total_ss * 0.85 if provisional > 44000 else 0
+        # IRS Graduated Social Security Combined Income "Tax Torpedo"
+        combined_income = salary + ord_div + qual_div + sim_annual_ltcg + active_conversion + total_rmd + muni_int_in + (total_ss * 0.5)
+        taxable_ss = 0
+        if tax_status == "MFJ":
+            if combined_income > 44000:
+                taxable_ss = min(0.85 * total_ss, 6000 + 0.85 * (combined_income - 44000))
+            elif combined_income > 32000:
+                taxable_ss = min(0.5 * total_ss, 0.5 * (combined_income - 32000))
+        else:
+            if combined_income > 34000:
+                taxable_ss = min(0.85 * total_ss, 4500 + 0.85 * (combined_income - 34000))
+            elif combined_income > 25000:
+                taxable_ss = min(0.5 * total_ss, 0.5 * (combined_income - 25000))
+                
         ordinary_gross = salary + ord_div + taxable_ss + active_conversion + total_rmd
         qd_ltcg_total = qual_div + sim_annual_ltcg
-        
         magi = ordinary_gross + qd_ltcg_total + muni_int_in
-        irmaa_limit = irmaa_base_2026 * inf_factor
-        if magi > irmaa_limit and active_conversion > 0:
-            active_conversion = max(0, active_conversion - (magi - irmaa_limit))
-            ordinary_gross = salary + ord_div + taxable_ss + active_conversion + total_rmd
-            magi = ordinary_gross + qd_ltcg_total + muni_int_in
+        
+        # 5-Tier Medicare IRMAA Surcharge logic
+        base_irmaa = irmaa_base_2026 * inf_factor
+        t1, t2, t3, t4, t5 = base_irmaa, base_irmaa * (272/218), base_irmaa * (340/218), base_irmaa * (408/218), base_irmaa * (750/218)
+        
+        irmaa_tier = 0
+        irmaa_surcharge = 0
+        num_spouses_medicare = (1 if age_h >= 65 else 0) + (1 if age_w >= 65 else 0)
+        
+        if magi > t5: irmaa_tier, irmaa_surcharge = 5, 480 * 12 * num_spouses_medicare
+        elif magi > t4: irmaa_tier, irmaa_surcharge = 4, 440 * 12 * num_spouses_medicare
+        elif magi > t3: irmaa_tier, irmaa_surcharge = 3, 320 * 12 * num_spouses_medicare
+        elif magi > t2: irmaa_tier, irmaa_surcharge = 2, 200 * 12 * num_spouses_medicare
+        elif magi > t1: irmaa_tier, irmaa_surcharge = 1, 80 * 12 * num_spouses_medicare
+        
+        irmaa_surcharge *= inf_factor # adjust surcharges for inflation
 
         # Deduction Logic
         base_deduct = 32200 if tax_status == "MFJ" else 16100
@@ -315,7 +351,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         
         fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status)
         
-        target_expense = (annual_expense * inf_factor) + fed_tax        
+        target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge       
         available_cash = total_ss + salary + taxable_div_in + sim_annual_ltcg + muni_int_in + total_rmd
         shortfall = max(0, target_expense - available_cash)
         
@@ -334,8 +370,10 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
 
         ira_total = cur_ira_h + cur_ira_w
         if ira_total > 0:
-            cur_ira_h -= (cur_ira_h / ira_total) * (ira_withdrawn + active_conversion * 0.95)
-            cur_ira_w -= (cur_ira_w / ira_total) * (ira_withdrawn + active_conversion * 0.05)
+            h_ratio = cur_ira_h / ira_total
+            w_ratio = cur_ira_w / ira_total
+            cur_ira_h -= h_ratio * (ira_withdrawn + active_conversion)
+            cur_ira_w -= w_ratio * (ira_withdrawn + active_conversion)
         
         cur_ira_h = max(0, cur_ira_h) * (1 + ira_growth)
         cur_ira_w = max(0, cur_ira_w) * (1 + ira_growth)
@@ -349,7 +387,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
             "LEVER: Roth": active_conversion, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "raw_outflow": target_expense, "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, 
             "Brokerage": cur_brokerage, "Total NW": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
-            "IRMAA": "✅ Safe" if magi < irmaa_limit else "🚩 Above",
+            "IRMAA": "✅ Safe" if irmaa_tier == 0 else f"🚩 Tier {irmaa_tier}",
             "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
         })
     return pd.DataFrame(rows)
