@@ -9,7 +9,7 @@ LANG_MAP = {
     "English": {
         "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
         "motivation_h": "✍️ Motivation",
-        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to minimize the next 15 year total federal tax paid, therefore achive optimum total wealth.",
+        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to achive optimum total wealth, while minimizing the total federal tax paid in the horizon.",
         "meth_h": "🔬 Methodology",
         "meth_body": """
 * **Asset Progression:** Tracks growth rates across three buckets (IRA, Roth, Brokerage).
@@ -90,7 +90,7 @@ LANG_MAP = {
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
         "motivation_h": "✍️ 建立初衷",
-        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是最小化未来 15 年的联邦税总支出，从而实现总财富的最优配置。",
+        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是实现最优的总财富, 同时最小化未来预见的联邦税总支出。",
         "meth_h": "🔬 模拟方法论",
         "meth_body": """
 * **资产演进:** 追踪三大类账户的增长（IRA, Roth, 经纪账户）。
