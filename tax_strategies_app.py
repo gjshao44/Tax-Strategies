@@ -9,7 +9,7 @@ LANG_MAP = {
     "English": {
         "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
         "motivation_h": "✍️ Motivation",
-        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to minimize the next 15 year total federal tax paid, therefore achive optimum total wealth.",
+        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to achive optimum total wealth, while minimizing the total federal tax paid in the horizon.",
         "meth_h": "🔬 Methodology",
         "meth_body": """
 * **Asset Progression:** Tracks growth rates across three buckets (IRA, Roth, Brokerage).
@@ -23,19 +23,19 @@ LANG_MAP = {
 * **Test Diffrent Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
 * **Observe Total NW:** Watch the final column of the roadmap to see how paying taxes early (in Roth conversion, tax free bond, harvesting capital gains) preserves long-term capital.
 """,
-        "kpi_h": "🚀 15-Year Strategic Outlook",
+        "kpi_h": "🚀 {sim_years}-Year Strategic Outlook",
         "kpi_init_nw": "Initial Net Worth",
-        "kpi_nw": "Estimated Final NW (Year 15)",
+        "kpi_nw": "Estimated Final NW (Year {sim_years})",
         "kpi_tax": "Total Federal Tax Paid",
         "kpi_roth": "Total Roth Reservoir",
-        "kpi_total_outflow": "Total 15-Yr Outflow",
-        "kpi_cap_outflow": "Total living expenses plus all federal taxes paid.",        
+        "kpi_total_outflow": "Total {sim_years}-Yr Outflow",
+        "kpi_cap_outflow": "Total living expenses plus all federal taxes paid over {sim_years} years.",        
         "kpi_cap_init": "Your starting capital across all accounts.",
-        "kpi_cap_nw": "Total capital remaining across all accounts.",
-        "kpi_cap_tax": "Cumulative tax burden over the 15-year period.",
+        "kpi_cap_nw": "Total capital remaining across all accounts after {sim_years} years.",
+        "kpi_cap_tax": "Cumulative tax burden over the {sim_years}-year period.",
         "kpi_cap_roth": "Final tax-free balance available for heirs or late-life needs.",
         "roadmap_h": "Retirement Roadmap starting",
-        "summary_h": "📊 Strategic Account Summary (15-Year Cumulative)",
+        "summary_h": "📊 Strategic Account Summary ({sim_years}-Year Cumulative)",
         "sidebar_timeline": "⏳ 1. Retirement Timeline",
         "sidebar_assets": "💰 Initial Assets",
         "sidebar_growth": "📈 Growth",
@@ -64,24 +64,33 @@ LANG_MAP = {
         "acc_ira": "Tax-Deferred (IRA)",
         "acc_roth": "Tax-Free (Roth)",
         "acc_broker": "Taxable (Brokerage/Muni)",
-        "sum_init": "Initial Balance",
-        "sum_final": "Final Asset Balance",
-        "sum_yield": "Total 15-Yr Yield/Income",
-        "sum_liability": "Total 15-Yr Tax Liability",
+        "sum_init": "Initial Balance", # No change needed here
+        "sum_final": "Final Asset Balance", # No change needed here
+        "sum_yield": "Total {sim_years}-Yr Yield/Income",
+        "sum_liability": "Total {sim_years}-Yr Tax Liability",
         "total_label": "**TOTAL ASSETS**",
-        "comp_header": "⚖️ Strategy vs. Baseline Comparison (15-Year Summary)",
-        "comp_desc": "Compares your active strategy levers against a baseline scenario with no Roth conversions and no capital gains harvesting.",
+        "comp_header": "⚖️ Strategy vs. Baseline Comparison ({sim_years}-Year Summary)",
+        "comp_desc": "Compares your active strategy levers against a baseline scenario with no Roth conversions and no capital gains harvesting over {sim_years} years.",
         "kpi_nw_gain": "Final Net Worth Gain",
         "kpi_tax_saved": "Cumulative Taxes Saved",
         "kpi_tax_extra": "Upfront Tax Cost",
         "kpi_roth_boost": "Final Roth Reservoir Boost",
         "kpi_baseline": "Baseline",
-        "kpi_strategy": "Strategy"
+        "kpi_strategy": "Strategy",
+        "tab_roadmap": "📈 Detailed Roadmap",
+        "tab_lab": "🔬 Strategy Lab",
+        "tab_data": "💾 Data Management",
+        "lab_roth_h": "Roth Conversion Sensitivity Analysis",
+        "lab_roth_desc": "This simulation tests multiple annual Roth conversion amounts to see their impact on your long-term Total Net Worth. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon).",
+        "lab_roth_desc": "This simulation tests various fixed annual Roth conversion amounts to see their impact on your long-term Total Net Worth. Conversions are assumed to occur annually until RMDs begin or the IRA is depleted. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon).",
+        "lab_roth_chart_x": "Annual Conversion Amount",
+        "lab_roth_chart_y": "Final Net Worth",
+        "lab_roth_optimum": "Based on the simulation, the optimum annual Roth conversion amount is approximately"
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
         "motivation_h": "✍️ 建立初衷",
-        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是最小化未来 15 年的联邦税总支出，从而实现总财富的最优配置。",
+        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是实现最优的总财富, 同时最小化未来预见的联邦税总支出。",
         "meth_h": "🔬 模拟方法论",
         "meth_body": """
 * **资产演进:** 追踪三大类账户的增长（IRA, Roth, 经纪账户）。
@@ -95,19 +104,19 @@ LANG_MAP = {
 * **测试增长与支出场景:** 测试不同的增长假设、通货膨胀率和年度生活支出。
 * **观察总净资产 (Total NW):** 关注路线图的最后一列，观察通过早期纳税（如 Roth 转换、税收减免债券、资本利得变现）如何保护长期资本。
 """,
-        "kpi_h": "🚀 15年战略展望",
-        "kpi_init_nw": "初始净资产",
-        "kpi_nw": "预计最终净资产 (第15年)",
+        "kpi_h": "🚀 {sim_years}年战略展望",
+        "kpi_init_nw": "初始净资产", # No change needed here
+        "kpi_nw": "预计最终净资产 (第{sim_years}年)",
         "kpi_tax": "联邦税总支出",
         "kpi_roth": "Roth 账户储备",
-        "kpi_total_outflow": "15年总支出",
-        "kpi_cap_outflow": "总生活支出与联邦税收之和",        
-        "kpi_cap_init": "您的账户初始总资本",        
-        "kpi_cap_nw": "所有账户中的剩余总资本",
-        "kpi_cap_tax": "15年期间累计的税务负担",
+        "kpi_total_outflow": "{sim_years}年总支出",
+        "kpi_cap_outflow": "{sim_years}年总生活支出与联邦税收之和",        
+        "kpi_cap_init": "您的账户初始总资本", # No change needed here
+        "kpi_cap_nw": "{sim_years}年后所有账户中的剩余总资本",
+        "kpi_cap_tax": "{sim_years}年期间累计的税务负担",
         "kpi_cap_roth": "可供继承或后期使用的最终免税余额",
         "roadmap_h": "退休财务路线图 - 始于",
-        "summary_h": "📊 战略账户总结 (15年累计)",
+        "summary_h": "📊 战略账户总结 ({sim_years}年累计)",
         "sidebar_timeline": "⏳ 1. 退休时间轴",
         "sidebar_assets": "💰 初始资产",
         "sidebar_growth": "📈 增长",
@@ -136,19 +145,28 @@ LANG_MAP = {
         "acc_ira": "税收递延 (IRA)",
         "acc_roth": "免税 (Roth)",
         "acc_broker": "应税 (经纪账户/市政债)",
-        "sum_init": "初始余额",
-        "sum_final": "期末资产余额",
-        "sum_yield": "15年总收益/收入",
-        "sum_liability": "15年总税务责任",
+        "sum_init": "初始余额", # No change needed here
+        "sum_final": "期末资产余额", # No change needed here
+        "sum_yield": "{sim_years}年总收益/收入",
+        "sum_liability": "{sim_years}年总税务责任",
         "total_label": "**资产总计**",
-        "comp_header": "⚖️ 优化策略 vs. 基准对比 (15年累计)",
-        "comp_desc": "将您当前的优化策略与“不做任何操作”（不进行 Roth 转换，不进行资本利得变现）的基准方案进行对比。",
+        "comp_header": "⚖️ 优化策略 vs. 基准对比 ({sim_years}年累计)",
+        "comp_desc": "将您当前的优化策略与“不做任何操作”（不进行 Roth 转换，不进行资本利得变现）的基准方案进行对比，基于{sim_years}年模拟。",
         "kpi_nw_gain": "最终净资产提升",
         "kpi_tax_saved": "累计节省税款",
         "kpi_tax_extra": "前期税务成本",
         "kpi_roth_boost": "免税 Roth 账户增幅",
         "kpi_baseline": "基准方案",
-        "kpi_strategy": "优化策略"
+        "kpi_strategy": "优化策略",
+        "tab_roadmap": "📈 详细路线图",
+        "tab_lab": "🔬 策略实验室",
+        "tab_data": "💾 数据管理",
+        "lab_roth_h": "Roth 转换敏感性分析",
+        "lab_roth_desc": "本模拟通过测试不同的年度 Roth 转换金额，观察其对长远总净资产的影响。最优解通常是在当前税负与未来 RMD 税负之间取得平衡的点。（基于至少{lab_horizon}年的模拟周期）。",
+        "lab_roth_desc": "本模拟测试各种固定的年度 Roth 转换金额，以观察其对长远总净资产的影响。假设转换每年进行，直到 RMD 开始或 IRA 耗尽。曲线的峰值代表了平衡当前税收与未来 RMD 税收的数学最优解。（基于至少 {lab_horizon} 年的模拟周期）。",
+        "lab_roth_chart_x": "年度转换金额",
+        "lab_roth_chart_y": "最终总净资产",
+        "lab_roth_optimum": "根据模拟，最佳年度 Roth 转换金额约为"
     }
 }
 
@@ -159,6 +177,7 @@ with st.sidebar:
     
     st.header(t["sidebar_timeline"])
     retire_year = st.number_input("Full Retirement Year", value=2026)
+    sim_years = st.slider("Simulation Horizon (Years)", 10, 40, 15)
     h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=64)
     w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=64)
 
@@ -193,8 +212,9 @@ with st.sidebar:
     inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
 
 # --- 3. CORE TAX CALCULATOR ---
-def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status):
+def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status, year_idx):
     # Ordinary Brackets (2026 Estimated)
+    # Note: Brackets are adjusted by inflation factor (inf_factor)
     ord_tax = 0
     if status == "MFJ":
         brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24)]
@@ -257,7 +277,7 @@ def get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare):
     return 0, 0
 
 # --- 4. CALCULATION ENGINE ---
-def calculate_roadmap(conv_override=None, ltcg_override=None):
+def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=None, ss_start_h=None, ss_start_w=None):
     rows = []
     irmaa_base_2026 = 218000 if tax_status == "MFJ" else 109000
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
@@ -267,13 +287,16 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
 
     sim_roth_conv = conv_override if conv_override is not None else roth_conv
     sim_annual_ltcg = ltcg_override if ltcg_override is not None else annual_ltcg
+    sim_horizon = horizon_override if horizon_override is not None else sim_years
+    actual_ss_h_start = ss_start_h if ss_start_h is not None else ss_h_start
+    actual_ss_w_start = ss_start_w if ss_start_w is not None else ss_w_start
 
     birth_year_h = 2026 - h_age_at_retire
     birth_year_w = 2026 - w_age_at_retire
     rmd_age_h = 75 if birth_year_h >= 1960 else 73
     rmd_age_w = 75 if birth_year_w >= 1960 else 73
 
-    for i in range(15):
+    for i in range(sim_horizon):
         year = retire_year + i
         age_h, age_w = h_age_at_retire + i, w_age_at_retire + i
         inf_factor = (1 + inflation_rate) ** i
@@ -306,8 +329,8 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         rmd_w = (cur_ira_w / divisor_w) if divisor_w > 0 else 0
         total_rmd = rmd_h + rmd_w
         salary = last_salary if year == retire_year else 0
-        h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
-        w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= ss_w_start else 0
+        h_ss = (ss_h_monthly * 12 * inf_factor) if year >= actual_ss_h_start else 0
+        w_ss = max((ss_w_monthly * 12 * inf_factor), (h_ss * 0.5)) if year >= actual_ss_w_start else 0
         total_ss = h_ss + w_ss
         
         qual_div = taxable_div_in * qd_perc
@@ -346,7 +369,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
         deduct = (base_deduct + extra_deduct) * inf_factor
         ord_taxable = max(0, ordinary_gross - deduct)
         
-        fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status)
+        fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status, i)
         
         target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge       
         available_cash = total_ss + salary + taxable_div_in + sim_annual_ltcg + muni_int_in + total_rmd
@@ -369,7 +392,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
                 test_magi = magi + gross_needed
                 
                 # Test the new tax with this gross withdrawal
-                test_fed_tax = calculate_comprehensive_tax(test_ord, qd_ltcg_total, test_magi, inf_factor, taxable_ss, tax_status)
+                test_fed_tax = calculate_comprehensive_tax(test_ord, qd_ltcg_total, test_magi, inf_factor, taxable_ss, tax_status, i)
                 test_irmaa_tier, test_irmaa_sur = get_irmaa_surcharge(test_magi, inf_factor, num_spouses_medicare)
                 
                 # The total cash we need to pull out is the original shortfall PLUS the extra tax and IRMAA penalty caused by pulling it out
@@ -385,7 +408,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
             # Lock in the finalized values
             ord_taxable += ira_withdrawn
             magi += ira_withdrawn
-            fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status)
+            fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status, i)
             irmaa_tier, irmaa_surcharge = get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare)
             target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge
             
@@ -421,113 +444,165 @@ def calculate_roadmap(conv_override=None, ltcg_override=None):
 
 # --- 5. UI DISPLAY ---
 st.title(t["title"])
-st.subheader(t["motivation_h"])
-st.write(t["motivation_body"])
 
-st.subheader(t["meth_h"])
-st.markdown(t["meth_body"])
+tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
 
-st.subheader(t["use_h"])
-st.markdown(t["use_body"])
+with tab_roadmap:
+    st.subheader(t["motivation_h"])
+    st.write(t["motivation_body"])
 
-df_baseline = calculate_roadmap(conv_override=0, ltcg_override=0)
-df = calculate_roadmap()
+    st.subheader(t["meth_h"])
+    st.markdown(t["meth_body"])
 
-# --- STRATEGY COMPARISON DASHBOARD ---
-st.subheader(t["comp_header"])
-st.write(t["comp_desc"])
+    st.subheader(t["use_h"])
+    st.markdown(t["use_body"])
 
-nw_base = df_baseline.iloc[-1]['Total NW']
-nw_strat = df.iloc[-1]['Total NW']
-nw_gain = nw_strat - nw_base
+    df_baseline = calculate_roadmap(conv_override=0, ltcg_override=0)
+    df = calculate_roadmap()
 
-tax_base = df_baseline['OUT: Fed Tax'].sum()
-tax_strat = df['OUT: Fed Tax'].sum()
-tax_saved = tax_base - tax_strat
+    # --- STRATEGY COMPARISON DASHBOARD ---
+    st.subheader(t["comp_header"].format(sim_years=sim_years))
+    st.write(t["comp_desc"].format(sim_years=sim_years))
 
-roth_base = df_baseline.iloc[-1]['Roth Bal']
-roth_strat = df.iloc[-1]['Roth Bal']
-roth_boost = roth_strat - roth_base
+    nw_base = df_baseline.iloc[-1]['Total NW']
+    nw_strat = df.iloc[-1]['Total NW']
+    nw_gain = nw_strat - nw_base
 
-c1, c2, c3 = st.columns(3)
+    tax_base = df_baseline['OUT: Fed Tax'].sum()
+    tax_strat = df['OUT: Fed Tax'].sum()
+    tax_saved = tax_base - tax_strat
 
-with c1:
-    sign_nw = "+" if nw_gain >= 0 else ""
-    color_nw = "#2ecc71" if nw_gain >= 0 else "#e74c3c"
-    bg_nw = "rgba(46, 204, 113, 0.08)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.08)"
-    border_nw = "rgba(46, 204, 113, 0.3)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.3)"
-    st.markdown(f"""
-    <div style="background-color: {bg_nw}; border: 1px solid {border_nw}; padding: 15px; border-radius: 8px; text-align: center;">
-        <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_nw_gain"]}</h4>
-        <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_nw};">{sign_nw}${nw_gain:,.0f}</p>
-        <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${nw_base:,.0f} vs {t["kpi_strategy"]}: ${nw_strat:,.0f}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    roth_base = df_baseline.iloc[-1]['Roth Bal']
+    roth_strat = df.iloc[-1]['Roth Bal']
+    roth_boost = roth_strat - roth_base
 
-with c2:
-    if tax_saved >= 0:
-        tax_title = t["kpi_tax_saved"]
-        tax_color = "#2ecc71"
-        tax_bg = "rgba(46, 204, 113, 0.08)"
-        tax_border = "rgba(46, 204, 113, 0.3)"
-        tax_val_str = f"+${tax_saved:,.0f}"
-    else:
-        tax_title = t["kpi_tax_extra"]
-        tax_color = "#f39c12"  # Frontloaded tax is an investment
-        tax_bg = "rgba(243, 156, 18, 0.08)"
-        tax_border = "rgba(243, 156, 18, 0.3)"
-        tax_val_str = f"-${abs(tax_saved):,.0f}"
-        
-    st.markdown(f"""
-    <div style="background-color: {tax_bg}; border: 1px solid {tax_border}; padding: 15px; border-radius: 8px; text-align: center;">
-        <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{tax_title}</h4>
-        <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {tax_color};">{tax_val_str}</p>
-        <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${tax_base:,.0f} vs {t["kpi_strategy"]}: ${tax_strat:,.0f}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
 
-with c3:
-    sign_roth = "+" if roth_boost >= 0 else ""
-    color_roth = "#3498db" if roth_boost >= 0 else "#e74c3c"
-    bg_roth = "rgba(52, 152, 219, 0.08)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
-    border_roth = "rgba(52, 152, 219, 0.3)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.3)"
-    st.markdown(f"""
-    <div style="background-color: {bg_roth}; border: 1px solid {border_roth}; padding: 15px; border-radius: 8px; text-align: center;">
-        <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth_boost"]}</h4>
-        <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_roth};">{sign_roth}${roth_boost:,.0f}</p>
-        <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${roth_base:,.0f} vs {t["kpi_strategy"]}: ${roth_strat:,.0f}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    with c1:
+        sign_nw = "+" if nw_gain >= 0 else ""
+        color_nw = "#2ecc71" if nw_gain >= 0 else "#e74c3c"
+        bg_nw = "rgba(46, 204, 113, 0.08)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.08)"
+        border_nw = "rgba(46, 204, 113, 0.3)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.3)"
+        st.markdown(f"""
+        <div style="background-color: {bg_nw}; border: 1px solid {border_nw}; padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_nw_gain"]}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_nw};">{sign_nw}${nw_gain:,.0f}</p>
+            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${nw_base:,.0f} vs {t["kpi_strategy"]}: ${nw_strat:,.0f}</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-st.divider()
+    with c2:
+        if tax_saved >= 0:
+            tax_title = t["kpi_tax_saved"]
+            tax_color = "#2ecc71"
+            tax_bg = "rgba(46, 204, 113, 0.08)"
+            tax_border = "rgba(46, 204, 113, 0.3)"
+            tax_val_str = f"+${tax_saved:,.0f}"
+        else:
+            tax_title = t["kpi_tax_extra"]
+            tax_color = "#f39c12"  # Frontloaded tax is an investment
+            tax_bg = "rgba(243, 156, 18, 0.08)"
+            tax_border = "rgba(243, 156, 18, 0.3)"
+            tax_val_str = f"-${abs(tax_saved):,.0f}"
+            
+        st.markdown(f"""
+        <div style="background-color: {tax_bg}; border: 1px solid {tax_border}; padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{tax_title}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {tax_color};">{tax_val_str}</p>
+            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${tax_base:,.0f} vs {t["kpi_strategy"]}: ${tax_strat:,.0f}</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-# --- ACTIVE STRATEGY DETAILS ---
-st.subheader(t["kpi_h"])
-k0, k1, k2, k3, k4 = st.columns(5)
-k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}", help=t["kpi_cap_init"])
-k1.metric(t["kpi_nw"], f"${df.iloc[-1]['Total NW']:,.0f}", help=t["kpi_cap_nw"])
-k2.metric(t["kpi_total_outflow"], f"${df['raw_outflow'].sum():,.0f}", help=t["kpi_cap_outflow"])
-k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}", help=t["kpi_cap_tax"])
-k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}", help=t["kpi_cap_roth"])
+    with c3:
+        sign_roth = "+" if roth_boost >= 0 else ""
+        color_roth = "#3498db" if roth_boost >= 0 else "#e74c3c"
+        bg_roth = "rgba(52, 152, 219, 0.08)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
+        border_roth = "rgba(52, 152, 219, 0.3)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.3)"
+        st.markdown(f"""
+        <div style="background-color: {bg_roth}; border: 1px solid {border_roth}; padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth_boost"]}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_roth};">{sign_roth}${roth_boost:,.0f}</p>
+            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${roth_base:,.0f} vs {t["kpi_strategy"]}: ${roth_strat:,.0f}</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-st.divider()
-st.subheader(f"{t['roadmap_h']} {retire_year}")
-col_map = {"INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]}
-st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"}))
+    st.divider()
 
-# Summary Table
-st.divider()
-st.subheader(t["summary_h"])
-total_tax = df["OUT: Fed Tax"].sum()
-total_taxable_yield = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
-tax_per_dollar = total_tax / max(1, total_taxable_yield)
+    # --- ACTIVE STRATEGY DETAILS ---
+    st.subheader(t["kpi_h"].format(sim_years=sim_years))
+    k0, k1, k2, k3, k4 = st.columns(5)
+    k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}", help=t["kpi_cap_init"])
+    k1.metric(t["kpi_nw"].format(sim_years=sim_years), f"${df.iloc[-1]['Total NW']:,.0f}", help=t["kpi_cap_nw"].format(sim_years=sim_years))
+    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df['raw_outflow'].sum():,.0f}", help=t["kpi_cap_outflow"].format(sim_years=sim_years))
+    k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}", help=t["kpi_cap_tax"].format(sim_years=sim_years))
+    k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}", help=t["kpi_cap_roth"])
 
-summary_rows = [
-    {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_per_dollar},
-    {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
-    {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar}
-]
-df_sum = pd.DataFrame(summary_rows)
-totals = {"Type": t["total_label"], "Init": df_sum["Init"].sum(), "Final": df_sum["Final"].sum(), "Yield": df_sum["Yield"].sum(), "Liability": df_sum["Liability"].sum()}
-df_final_sum = pd.concat([df_sum, pd.DataFrame([totals])], ignore_index=True)
-st.table(df_final_sum.rename(columns={"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": t["sum_yield"], "Liability": t["sum_liability"]}).style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", t["sum_yield"]: "${:,.0f}", t["sum_liability"]: "${:,.0f}"}))
+    st.divider()
+    st.subheader(f"{t['roadmap_h']} {retire_year}")
+    col_map = {"INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], "Total NW": t["col_nw"], "🚨 Important Events": t["col_events"]}
+    st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total NW', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"}))
+
+    # Summary Table
+    st.divider()
+    st.subheader(t["summary_h"].format(sim_years=sim_years))
+    total_tax = df["OUT: Fed Tax"].sum()
+    total_taxable_yield = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
+    tax_per_dollar = total_tax / max(1, total_taxable_yield)
+
+    summary_rows = [
+        {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_per_dollar},
+        {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
+        {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar}
+    ]
+    df_sum_table = pd.DataFrame(summary_rows)
+    totals_row = {"Type": t["total_label"], "Init": df_sum_table["Init"].sum(), "Final": df_sum_table["Final"].sum(), "Yield": df_sum_table["Yield"].sum(), "Liability": df_sum_table["Liability"].sum()}
+    df_final_sum_display = pd.concat([df_sum_table, pd.DataFrame([totals_row])], ignore_index=True)
+
+    # Pre-format labels for the summary table
+    yield_col = t["sum_yield"].format(sim_years=sim_years)
+    tax_col = t["sum_liability"].format(sim_years=sim_years)
+    
+    df_final_sum_renamed = df_final_sum_display.rename(columns={"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": yield_col, "Liability": tax_col})
+    st.table(df_final_sum_renamed.style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", yield_col: "${:,.0f}", tax_col: "${:,.0f}"}))
+
+with tab_lab:
+    lab_horizon = max(sim_years, 30)
+    st.subheader(t["lab_roth_h"])
+    st.write(t["lab_roth_desc"].format(lab_horizon=lab_horizon))
+    
+    # Optimization parameters
+    total_ira_init = ira_h_init + ira_w_init
+    # Dynamic upper bound based on IRA balance, capped at 200k for performance
+    lab_upper_bound = min(200000, int((total_ira_init // 10000 + 1) * 10000))
+    lab_upper_bound = max(10000, lab_upper_bound) # Ensure at least one data point
+    test_amounts = list(range(0, lab_upper_bound + 1, 10000))
+    lab_results = []
+    
+    with st.spinner("Analyzing Roth efficiency..."):
+        for amt in test_amounts:
+            res_df_sim = calculate_roadmap(conv_override=amt, horizon_override=lab_horizon)
+            lab_results.append({
+                "amt": amt,
+                "nw": res_df_sim.iloc[-1]['Total NW'],
+                "tax": res_df_sim['OUT: Fed Tax'].sum()
+            })
+    
+    res_df = pd.DataFrame(lab_results)
+    col_nw, col_tax = st.columns(2)
+    with col_nw:
+        st.write(f"**{t['lab_roth_chart_y']} (Objective)**")
+        nw_display = res_df[["amt", "nw"]].rename(columns={"amt": t["lab_roth_chart_x"], "nw": t["lab_roth_chart_y"]})
+        st.line_chart(nw_display.set_index(t["lab_roth_chart_x"])[t["lab_roth_chart_y"]])
+    with col_tax:
+        st.write("**Cumulative Taxes Paid (Trade-off Cost)**")
+        tax_display = res_df[["amt", "tax"]].rename(columns={"amt": t["lab_roth_chart_x"], "tax": "Total Tax"})
+        st.line_chart(tax_display.set_index(t["lab_roth_chart_x"])["Total Tax"])
+    
+    best_idx = res_df["nw"].idxmax()
+    best_amt = res_df.loc[best_idx, "amt"]
+    
+    st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
+
+with tab_data:
+    st.subheader(t["tab_data"])
+    st.info("Coming Soon: Save your settings to a local file to reload them later.")
