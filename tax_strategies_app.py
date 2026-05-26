@@ -81,11 +81,14 @@ LANG_MAP = {
         "tab_lab": "🔬 Strategy Lab",
         "tab_data": "💾 Data Management",
         "lab_roth_h": "Roth Conversion Sensitivity Analysis",
-        "lab_roth_desc": "This simulation tests multiple annual Roth conversion amounts to see their impact on your long-term Total Net Worth. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon).",
         "lab_roth_desc": "This simulation tests various fixed annual Roth conversion amounts to see their impact on your long-term Total Net Worth. Conversions are assumed to occur annually until RMDs begin or the IRA is depleted. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon).",
         "lab_roth_chart_x": "Annual Conversion Amount",
         "lab_roth_chart_y": "Final Net Worth",
-        "lab_roth_optimum": "Based on the simulation, the optimum annual Roth conversion amount is approximately"
+        "lab_roth_optimum": "Based on the simulation, the optimum annual Roth conversion amount is approximately",
+        "lab_stop_h": "Roth Window Optimizer (Stop Age)",
+        "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}), this tests which age to stop converting to maximize net worth. Often stopping when Social Security starts (Age 67-70) is ideal to avoid higher tax brackets.",
+        "lab_stop_chart_x": "Stop Age",
+        "lab_stop_optimum": "The optimum age to stop Roth conversions is"
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -162,11 +165,14 @@ LANG_MAP = {
         "tab_lab": "🔬 策略实验室",
         "tab_data": "💾 数据管理",
         "lab_roth_h": "Roth 转换敏感性分析",
-        "lab_roth_desc": "本模拟通过测试不同的年度 Roth 转换金额，观察其对长远总净资产的影响。最优解通常是在当前税负与未来 RMD 税负之间取得平衡的点。（基于至少{lab_horizon}年的模拟周期）。",
         "lab_roth_desc": "本模拟测试各种固定的年度 Roth 转换金额，以观察其对长远总净资产的影响。假设转换每年进行，直到 RMD 开始或 IRA 耗尽。曲线的峰值代表了平衡当前税收与未来 RMD 税收的数学最优解。（基于至少 {lab_horizon} 年的模拟周期）。",
         "lab_roth_chart_x": "年度转换金额",
         "lab_roth_chart_y": "最终总净资产",
-        "lab_roth_optimum": "根据模拟，最佳年度 Roth 转换金额约为"
+        "lab_roth_optimum": "根据模拟，最佳年度 Roth 转换金额约为",
+        "lab_stop_h": "Roth 转换周期（停止年龄）优化",
+        "lab_stop_desc": "使用上述最佳金额 (${best_amt:,.0f})，测试在哪个年龄停止转换可以使净资产最大化。通常在社保开始领取时（67-70岁）停止转换是理想的，以避免进入更高的税率档位。",
+        "lab_stop_chart_x": "停止年龄",
+        "lab_stop_optimum": "最佳停止 Roth 转换的年龄是"
     }
 }
 
@@ -277,7 +283,7 @@ def get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare):
     return 0, 0
 
 # --- 4. CALCULATION ENGINE ---
-def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=None, ss_start_h=None, ss_start_w=None):
+def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=None, ss_start_h=None, ss_start_w=None, conv_stop_age_override=None):
     rows = []
     irmaa_base_2026 = 218000 if tax_status == "MFJ" else 109000
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
@@ -296,6 +302,8 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
     rmd_age_h = 75 if birth_year_h >= 1960 else 73
     rmd_age_w = 75 if birth_year_w >= 1960 else 73
 
+    sim_conv_stop_age = conv_stop_age_override if conv_stop_age_override is not None else min(rmd_age_h, rmd_age_w)
+
     for i in range(sim_horizon):
         year = retire_year + i
         age_h, age_w = h_age_at_retire + i, w_age_at_retire + i
@@ -312,9 +320,9 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
         active_conversion = min(sim_roth_conv, cur_ira_h + cur_ira_w)
         stop_reason = ""
         
-        if age_h >= rmd_age_h or age_w >= rmd_age_w:
+        if age_h >= sim_conv_stop_age or age_w >= sim_conv_stop_age:
             active_conversion = 0
-            stop_reason = "RMD Start"
+            stop_reason = "Target Age Reached" if conv_stop_age_override else "RMD Start"
         elif (cur_ira_h + cur_ira_w) <= 1000 and sim_roth_conv > 0:
             active_conversion = 0
             stop_reason = "IRA Depleted"
@@ -602,6 +610,30 @@ with tab_lab:
     best_amt = res_df.loc[best_idx, "amt"]
     
     st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
+
+    if best_amt > 0:
+        st.divider()
+        st.subheader(t["lab_stop_h"])
+        st.write(t["lab_stop_desc"].format(best_amt=best_amt))
+        
+        # Determine RMD age to set range for duration testing
+        by_h = 2026 - h_age_at_retire
+        rmd_a_h = 75 if by_h >= 1960 else 73
+        
+        test_ages = list(range(h_age_at_retire, rmd_a_h + 1))
+        if len(test_ages) > 1:
+            stop_results = []
+            with st.spinner("Analyzing conversion window..."):
+                for sa in test_ages:
+                    res_df_stop = calculate_roadmap(conv_override=best_amt, horizon_override=lab_horizon, conv_stop_age_override=sa)
+                    stop_results.append({"age": sa, "nw": res_df_stop.iloc[-1]['Total NW']})
+            
+            stop_df = pd.DataFrame(stop_results)
+            st.line_chart(stop_df.rename(columns={"age": t["lab_stop_chart_x"], "nw": t["lab_roth_chart_y"]}).set_index(t["lab_stop_chart_x"])[t["lab_roth_chart_y"]])
+            
+            best_sa_idx = stop_df["nw"].idxmax()
+            best_sa = stop_df.loc[best_sa_idx, "age"]
+            st.success(f"💡 **{t['lab_stop_optimum']} {best_sa}**")
 
 with tab_data:
     st.subheader(t["tab_data"])
