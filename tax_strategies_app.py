@@ -1,14 +1,15 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import json
 
 st.set_page_config(page_title="Comprehensive Retirement Wealth & Tax Optimizer", layout="wide")
 
 # --- 1. LANGUAGE DICTIONARY ---
-# --- MODIFIED: Added specific column keys for transparency ---
 LANG_MAP = {
     "English": {
         "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
+        "privacy_note": "🔒 Privacy & Data Security Notice: This application runs entirely within your local browser session. No user data, asset values, or personal tax profiles are ever collected, tracked, or stored on any external server. Your financial information remains completely private.",
         "motivation_h": "✍️ Motivation",
         "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to achive optimum total wealth, while minimizing the total federal tax paid in the horizon.",
         "meth_h": "🔬 Methodology",
@@ -22,7 +23,6 @@ LANG_MAP = {
         "use_body": """
 * **Adjust Strategic Levers:** Use the sidebar to simulate different Roth conversion levels and Capital Gain harvesting.
 * **Test Diffrent Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
-* **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
 * **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
 * **Observe Total Net Worth:** Watch the final column of the roadmap to see how paying taxes early (in Roth conversion, tax free bond, harvesting capital gains) preserves long-term capital.
 """,
@@ -95,6 +95,7 @@ LANG_MAP = {
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
+        "privacy_note": "🔒 隐私与数据安全提示：本程序完全在您的本地浏览器会话中运行。任何用户数据、资产数值或个人税务信息均不会被收集、追踪或存储在任何外部服务器上。您的财务信息将完全保持私密。",
         "motivation_h": "✍️ 建立初衷",
         "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是实现最优的总财富, 同时最小化未来预见的联邦税总支出。",
         "meth_h": "🔬 模拟方法论",
@@ -185,40 +186,48 @@ with st.sidebar:
     t = LANG_MAP[lang]
     
     st.header(t["sidebar_timeline"])
-    retire_year = st.number_input("Full Retirement Year", value=2026)
-    sim_years = st.slider("Simulation Horizon (Years)", 10, 40, 15)
-    h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=64)
-    w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=64)
+    retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
+    sim_years = st.slider("Simulation Horizon (Years)", 10, 40, value=int(st.session_state.get("sim_years", 15)))
+    h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=int(st.session_state.get("h_age_at_retire", 64)))
+    w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=int(st.session_state.get("w_age_at_retire", 64)))
 
     st.header(t["sidebar_assets"])
-    ira_h_init = st.number_input("Husband IRA Balance ($)", value=1500000)
-    ira_w_init = st.number_input("Wife IRA Balance ($)", value=10000)
-    roth_init = st.number_input("Roth IRA Balance ($)", value=100000)
-    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=1000000)
+    ira_h_init = st.number_input("Husband IRA Balance ($)", value=int(st.session_state.get("ira_h_init", 1500000)))
+    ira_w_init = st.number_input("Wife IRA Balance ($)", value=int(st.session_state.get("ira_w_init", 10000)))
+    roth_init = st.number_input("Roth IRA Balance ($)", value=int(st.session_state.get("roth_init", 100000)))
+    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=int(st.session_state.get("brokerage_init", 1000000)))
 
     st.header(t["sidebar_levers"])
-    tax_status = st.selectbox(t["filing_status"], ["MFJ", "Single", "MFS"])
-    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, 40000, step=5000)
-    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, 20000, step=10000)
+    status_options = ["MFJ", "Single", "MFS"]
+    saved_status = st.session_state.get("tax_status", "MFJ")
+    status_idx = status_options.index(saved_status) if saved_status in status_options else 0
+    tax_status = st.selectbox(t["filing_status"], status_options, index=status_idx)
+    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, value=int(st.session_state.get("roth_conv", 40000)), step=5000)
+    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, value=int(st.session_state.get("annual_ltcg", 20000)), step=10000)
 
     st.header(t["sidebar_cash"])
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=100000)
-    qd_perc = st.slider(t["qd_ratio"], 0, 100, 80) / 100
-    taxable_div_in = st.number_input("Annual Taxable Dividends", value=33000)
-    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=37000)
-    last_salary = st.number_input("Final Salary (Retirement Year)", value=0)
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
+    qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
+    qd_perc = qd_perc_raw / 100
+    taxable_div_in = st.number_input("Annual Taxable Dividends", value=int(st.session_state.get("taxable_div_in", 33000)))
+    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=int(st.session_state.get("muni_int_in", 37000)))
+    last_salary = st.number_input("Final Salary (Retirement Year)", value=int(st.session_state.get("last_salary", 0)))
     
     st.header(t["sidebar_ss"])
-    ss_h_monthly = st.number_input("H Monthly SS ($)", value=4000)
-    ss_h_start = st.number_input("H Start Year", value=2029)
-    ss_w_monthly = st.number_input("W Monthly SS ($)", value=3000)
-    ss_w_start = st.number_input("W Start Year", value=2029)
+    ss_h_monthly = st.number_input("H Monthly SS ($)", value=int(st.session_state.get("ss_h_monthly", 4000)))
+    ss_h_start = st.number_input("H Start Year", value=int(st.session_state.get("ss_h_start", 2029)))
+    ss_w_monthly = st.number_input("W Monthly SS ($)", value=int(st.session_state.get("ss_w_monthly", 3000)))
+    ss_w_start = st.number_input("W Start Year", value=int(st.session_state.get("ss_w_start", 2029)))
 
     st.header(t["sidebar_growth"])
-    ira_growth = st.slider("IRA Growth Rate (%)", 1.0, 10.0, 4.0) / 100
-    roth_growth = st.slider("Roth Growth Rate (%)", 1.0, 10.0, 5.0) / 100
-    broker_growth = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, 3.0) / 100
-    inflation_rate = st.slider("Inflation Rate (%)", 0.0, 5.0, 2.5) / 100
+    ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
+    ira_growth = ira_growth_raw / 100
+    roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("roth_growth_raw", 5.0)))
+    roth_growth = roth_growth_raw / 100
+    broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("broker_growth_raw", 3.0)))
+    broker_growth = broker_growth_raw / 100
+    inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
+    inflation_rate = inflation_rate_raw / 100
 
 # --- 3. CORE TAX CALCULATOR ---
 def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status, year_idx):
@@ -281,8 +290,20 @@ def get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare):
     if magi > t1: return 1, 80 * 12 * num_spouses_medicare * inf_factor
     return 0, 0
 
-# --- 4. CALCULATION ENGINE ---
-def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=None, ss_start_h=None, ss_start_w=None, conv_stop_age_override=None):
+# --- 4. CALCULATION ENGINE (WITH CACHE) ---
+@st.cache_data
+def calculate_roadmap(
+    ira_h_init, ira_w_init, roth_init, brokerage_init,
+    retire_year, sim_years, h_age_at_retire, w_age_at_retire,
+    tax_status, roth_conv, annual_ltcg, annual_expense, qd_perc,
+    taxable_div_in, muni_int_in, last_salary,
+    ss_h_monthly, ss_h_start, ss_w_monthly, ss_w_start,
+    ira_growth, roth_growth, broker_growth, inflation_rate,
+    lang,
+    conv_override=None, ltcg_override=None, horizon_override=None, 
+    ss_start_h=None, ss_start_w=None, conv_stop_age_override=None
+):
+    t_internal = LANG_MAP[lang]
     rows = []
     cur_ira_h, cur_ira_w = ira_h_init, ira_w_init
     cur_roth, cur_brokerage = roth_init, brokerage_init
@@ -308,11 +329,11 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
         inf_factor = (1 + inflation_rate) ** i
         ev = []
         
-        if year == retire_year: ev.append(t["event_retire"])
-        if age_h == 65: ev.append(t["event_hmed"])
-        if age_w == 65: ev.append(t["event_wmed"])
-        if age_h == rmd_age_h: ev.append(t["event_hrmd"])
-        if age_w == rmd_age_w: ev.append(t["event_wrmd"])
+        if year == retire_year: ev.append(t_internal["event_retire"])
+        if age_h == 65: ev.append(t_internal["event_hmed"])
+        if age_w == 65: ev.append(t_internal["event_wmed"])
+        if age_h == rmd_age_h: ev.append(t_internal["event_hrmd"])
+        if age_w == rmd_age_w: ev.append(t_internal["event_wrmd"])
 
         active_conversion = min(sim_roth_conv, cur_ira_h + cur_ira_w)
         stop_reason = ""
@@ -325,7 +346,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
             stop_reason = "IRA Depleted"
 
         if active_conversion == 0 and not conversion_already_stopped and sim_roth_conv > 0:
-            ev.append(f"{t['event_roth_stop']} ({stop_reason})")
+            ev.append(f"{t_internal['event_roth_stop']} ({stop_reason})")
             conversion_already_stopped = True
 
         divisor_h = get_rmd_divisor(age_h)
@@ -379,7 +400,7 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
         shortfall = max(0, target_expense - available_cash)
         
         if shortfall > (cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth) and not oom_triggered:
-            ev.append(t["event_oom"])
+            ev.append(t_internal["event_oom"])
             oom_triggered = True
 
         from_broker = min(cur_brokerage, shortfall)
@@ -441,6 +462,18 @@ def calculate_roadmap(conv_override=None, ltcg_override=None, horizon_override=N
 
 # --- 5. UI DISPLAY ---
 st.title(t["title"])
+st.info(t["privacy_note"])
+
+# Bundle all reactive inputs for structural mapping to cached calculator argument signature
+core_args = {
+    "ira_h_init": ira_h_init, "ira_w_init": ira_w_init, "roth_init": roth_init, "brokerage_init": brokerage_init,
+    "retire_year": retire_year, "sim_years": sim_years, "h_age_at_retire": h_age_at_retire, "w_age_at_retire": w_age_at_retire,
+    "tax_status": tax_status, "roth_conv": roth_conv, "annual_ltcg": annual_ltcg, "annual_expense": annual_expense, "qd_perc": qd_perc,
+    "taxable_div_in": taxable_div_in, "muni_int_in": muni_int_in, "last_salary": last_salary,
+    "ss_h_monthly": ss_h_monthly, "ss_h_start": ss_h_start, "ss_w_monthly": ss_w_monthly, "ss_w_start": ss_w_start,
+    "ira_growth": ira_growth, "roth_growth": roth_growth, "broker_growth": broker_growth, "inflation_rate": inflation_rate,
+    "lang": lang
+}
 
 tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
 
@@ -454,8 +487,8 @@ with tab_roadmap:
     st.subheader(t["use_h"])
     st.markdown(t["use_body"])
 
-    df_baseline = calculate_roadmap(conv_override=0, ltcg_override=0)
-    df = calculate_roadmap()
+    df_baseline = calculate_roadmap(**core_args, conv_override=0, ltcg_override=0)
+    df = calculate_roadmap(**core_args)
 
     st.subheader(t["comp_header"].format(sim_years=sim_years))
     st.write(t["comp_desc"].format(sim_years=sim_years))
@@ -513,7 +546,7 @@ with tab_roadmap:
         sign_roth = "+" if roth_boost >= 0 else ""
         color_roth = "#3498db" if roth_boost >= 0 else "#e74c3c"
         bg_roth = "rgba(52, 152, 219, 0.08)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
-        border_roth = "rgba(52, 152, 219, 0.3)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.3)"
+        border_roth = "rgba(52, 152, 219, 0.3)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
         st.markdown(f"""
         <div style="background-color: {bg_roth}; border: 1px solid {border_roth}; padding: 15px; border-radius: 8px; text-align: center;">
             <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth_boost"]}</h4>
@@ -574,7 +607,7 @@ with tab_lab:
     
     with st.spinner("Analyzing Roth efficiency..."):
         for amt in test_amounts:
-            res_df_sim = calculate_roadmap(conv_override=amt, horizon_override=lab_horizon)
+            res_df_sim = calculate_roadmap(**core_args, conv_override=amt, horizon_override=lab_horizon)
             lab_results.append({
                 "amt": amt,
                 "nw": res_df_sim.iloc[-1]['Total Net Worth'],
@@ -629,7 +662,7 @@ with tab_lab:
             stop_results = []
             with st.spinner("Analyzing conversion window..."):
                 for sa in test_ages:
-                    res_df_stop = calculate_roadmap(conv_override=best_amt, horizon_override=lab_horizon, conv_stop_age_override=sa)
+                    res_df_stop = calculate_roadmap(**core_args, conv_override=best_amt, horizon_override=lab_horizon, conv_stop_age_override=sa)
                     stop_results.append({"age": sa, "nw": res_df_stop.iloc[-1]['Total Net Worth']})
             
             stop_df = pd.DataFrame(stop_results)
@@ -653,4 +686,63 @@ with tab_lab:
 
 with tab_data:
     st.subheader(t["tab_data"])
-    st.info("Coming Soon: Save your settings to a local file to reload them later.")
+    
+    # Create the data payload matching current state settings
+    current_profile = {
+        "retire_year": retire_year,
+        "sim_years": sim_years,
+        "h_age_at_retire": h_age_at_retire,
+        "w_age_at_retire": w_age_at_retire,
+        "ira_h_init": ira_h_init,
+        "ira_w_init": ira_w_init,
+        "roth_init": roth_init,
+        "brokerage_init": brokerage_init,
+        "tax_status": tax_status,
+        "roth_conv": roth_conv,
+        "annual_ltcg": annual_ltcg,
+        "annual_expense": annual_expense,
+        "qd_perc_raw": qd_perc_raw,
+        "taxable_div_in": taxable_div_in,
+        "muni_int_in": muni_int_in,
+        "last_salary": last_salary,
+        "ss_h_monthly": ss_h_monthly,
+        "ss_h_start": ss_h_start,
+        "ss_w_monthly": ss_w_monthly,
+        "ss_w_start": ss_w_start,
+        "ira_growth_raw": ira_growth_raw,
+        "roth_growth_raw": roth_growth_raw,
+        "broker_growth_raw": broker_growth_raw,
+        "inflation_rate_raw": inflation_rate_raw
+    }
+    
+    json_string = json.dumps(current_profile, indent=4)
+    
+    col_save, col_load = st.columns(2)
+    
+    with col_save:
+        st.write("### 💾 Export Profile")
+        st.caption("Save your current retirement asset values and strategies to your computer.")
+        st.download_button(
+            label="📥 Download Profile (.json)",
+            data=json_string,
+            file_name="retirement_profile.json",
+            mime="application/json"
+        )
+        
+    with col_load:
+        st.write("### 📂 Import Profile")
+        st.caption("Upload a previously saved profile file to automatically populate all inputs.")
+        uploaded_file = st.file_uploader("Choose a profile JSON file", type=["json"])
+        
+        if uploaded_file is not None:
+            try:
+                loaded_profile = json.load(uploaded_file)
+                
+                # Push values seamlessly into session state keys
+                for key, value in loaded_profile.items():
+                    st.session_state[key] = value
+                
+                st.success("✅ Profile loaded successfully! Refreshing components...")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error parsing profile file: {e}")
