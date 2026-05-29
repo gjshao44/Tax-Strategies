@@ -10,8 +10,9 @@ LANG_MAP = {
     "English": {
         "title": "🛡️ Comprehensive Retirement Wealth & Tax Optimizer",
         "privacy_note": "🔒 Privacy & Data Security Notice: This application runs entirely within your local browser session. No user data, asset values, or personal tax profiles are ever collected, tracked, or stored on any external server. Your financial information remains completely private.",
+        "about_expander": "📖 About & How to Use",
         "motivation_h": "✍️ Motivation",
-        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to achive optimum total wealth, while minimizing the total federal tax paid in the horizon.",
+        "motivation_body": "This tool provides prospective retirees or current retirees with a tax strategy simulation and individualizes the various levers to convert to Roth; to realize capital gains; to test different growth scenarios. The goal is to achieve optimum total wealth, while minimizing the total federal tax paid in the horizon.",
         "meth_h": "🔬 Methodology",
         "meth_body": """
 * **Asset Progression:** Tracks growth rates across three buckets (IRA, Roth, Brokerage).
@@ -22,13 +23,13 @@ LANG_MAP = {
         "use_h": "🕹️ How to Use",
         "use_body": """
 * **Adjust Strategic Levers:** Use the sidebar to simulate different Roth conversion levels and Capital Gain harvesting.
-* **Test Diffrent Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
+* **Test Different Growth and Expense Scenarios:** Use the sidebar to test different growth assumptions, inflation rate and annual living expenses.
 * **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
-* **Observe Total Net Worth:** Watch the final column of the roadmap to see how paying taxes early (in Roth conversion, tax free bond, harvesting capital gains) preserves long-term capital.
+* **Observe Expected Net Worth:** Watch the comparison and roadmap to see how paying taxes early preserves long-term survival-weighted capital.
 """,
         "kpi_h": "🚀 {sim_years}-Year Strategic Outlook",
         "kpi_init_nw": "Initial Net Worth",
-        "kpi_nw": "Estimated Final Net Worth (Year {sim_years})",
+        "kpi_nw": "Avg. Expected Net Worth",
         "kpi_tax": "Total Federal Tax Paid",
         "kpi_roth": "Total Roth Reservoir",
         "kpi_total_outflow": "Total {sim_years}-Yr Outflow",
@@ -56,6 +57,7 @@ LANG_MAP = {
         "col_magi": "OUT: MAGI",
         "col_tax": "OUT: Fed Tax",
         "col_nw": "Total Net Worth",
+        "col_ex_nw": "Expected Net Worth",
         "col_events": "🚨 Important Events",
         "event_oom": "⚠️ OUT OF MONEY",        
         "event_retire": "Retirement",
@@ -73,8 +75,8 @@ LANG_MAP = {
         "sum_liability": "Total {sim_years}-Yr Tax Liability",
         "total_label": "**TOTAL ASSETS**",
         "comp_header": "⚖️ Strategy vs. Baseline Comparison ({sim_years}-Year Summary)",
-        "comp_desc": "Compares your active strategy levers against a baseline scenario with no Roth conversions and no capital gains harvesting over {sim_years} years.",
-        "kpi_nw_gain": "Final Net Worth Gain",
+        "comp_desc": "Compares your active strategy levers against a baseline scenario with no Roth conversions and no capital gains harvesting over {sim_years} years. Strategy success is measured by maximizing your Average Expected Net Worth (survival-weighted).",
+        "kpi_nw_gain": "Expected Net Worth Gain (Mean)",
         "kpi_tax_saved": "Cumulative Taxes Saved",
         "kpi_tax_extra": "Upfront Tax Cost",
         "kpi_roth_boost": "Final Roth Reservoir Boost",
@@ -84,20 +86,21 @@ LANG_MAP = {
         "tab_lab": "🔬 Strategy Lab",
         "tab_data": "💾 Data Management",
         "lab_roth_h": "Roth Conversion Sensitivity Analysis",
-        "lab_roth_desc": "This simulation tests various fixed annual Roth conversion amounts to see their impact on your long-term Total Net Worth. Conversions are assumed to occur annually until RMDs begin or the IRA is depleted. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon).",
+        "lab_roth_desc": "This simulation tests various fixed annual Roth conversion amounts to see their impact on your long-term Total Net Worth. Conversions are assumed to occur annually until RMDs begin or the IRA is depleted. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon). We apply a survival discount to future years. Because there is a lower probability of being alive in the distant future, assets held in early retirement have a higher expected utility—they are more likely to be utilized by the household.",
         "lab_roth_chart_x": "Annual Conversion Amount",
         "lab_roth_chart_y": "Final Net Worth",
         "lab_roth_optimum": "Based on the simulation, the optimum annual Roth conversion amount is approximately",
         "lab_stop_h": "Roth Window Optimizer (Stop Age)",
-        "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}), this tests which age to stop converting to maximize net worth. Often stopping when Social Security starts (Age 67-70) is ideal to avoid higher tax brackets.",
+        "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}), this tests which age to stop converting to maximize net worth. It is often mathematically optimal to continue conversions right up until Required Minimum Distributions (RMDs) begin.",
         "lab_stop_chart_x": "Stop Age",
         "lab_stop_optimum": "The optimum age to stop Roth conversions is"
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
         "privacy_note": "🔒 隐私与数据安全提示：本程序完全在您的本地浏览器会话中运行。任何用户数据、资产数值或个人税务信息均不会被收集、追踪或存储在任何外部服务器上。您的财务信息将完全保持私密。",
+        "about_expander": "📖 工具介绍与使用说明",
         "motivation_h": "✍️ 建立初衷",
-        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是实现最优的总财富, 同时最小化未来预见的联邦税总支出。",
+        "motivation_body": "本工具为准退休人员或已退休人员提供税务策略模拟。通过量化 Roth 转换、资本利得变现及不同增长场景等杠杆，目标是实现最优的总财富，同时最小化未来预见的联邦税总支出。",
         "meth_h": "🔬 模拟方法论",
         "meth_body": """
 * **资产演进:** 追踪三大类账户的增长（IRA, Roth, 经纪账户）。
@@ -109,11 +112,12 @@ LANG_MAP = {
         "use_body": """
 * **调整策略杠杆:** 使用侧边栏模拟不同的 Roth 转换水平和资本利得获取。
 * **测试增长与支出场景:** 测试不同的增长假设、通货膨胀率和年度生活支出。
-* **观察总净资产 (Total Net Worth):** 关注路线图的最后一列，观察通过早期纳税（如 Roth 转换、税收减免债券、资本利得变现）如何保护长期资本。
+* **探索策略实验室:** 导航到“策略实验室”选项卡，运行自动化敏感性分析，找出数学上最优的年度 Roth 转换金额和时间窗口。
+* **观察预期净资产 (Expected Net Worth):** 关注路线图和对比，观察通过早期纳税如何保护长期的生存加权资本。
 """,
         "kpi_h": "🚀 {sim_years}年战略展望",
         "kpi_init_nw": "初始净资产", 
-        "kpi_nw": "预计最终净资产 (第{sim_years}年)",
+        "kpi_nw": "平均预期净资产",
         "kpi_tax": "联邦税总支出",
         "kpi_roth": "Roth 账户储备",
         "kpi_total_outflow": "{sim_years}年总支出",
@@ -127,7 +131,7 @@ LANG_MAP = {
         "sidebar_timeline": "⏳ 1. 退休时间轴",
         "sidebar_assets": "💰 初始资产",
         "sidebar_growth": "📈 增长",
-        "sidebar_cash": "💵 现金流,收益与支出",
+        "sidebar_cash": "💵 现金流、收益与支出",
         "sidebar_ss": "📈 社会安全金",
         "sidebar_levers": "🎚️ 策略杠杆",
         "filing_status": "报税状态",
@@ -141,6 +145,7 @@ LANG_MAP = {
         "col_magi": "MAGI(医保判定)",
         "col_tax": "联邦税支出",
         "col_nw": "总净资产",
+        "col_ex_nw": "预期净资产",
         "col_events": "🚨 重要事件",
         "event_oom": "⚠️ 资金耗尽",        
         "event_roth_stop": "🛑 Roth 转换停止",
@@ -158,8 +163,8 @@ LANG_MAP = {
         "sum_liability": "{sim_years}年总税务责任",
         "total_label": "**资产总计**",
         "comp_header": "⚖️ 优化策略 vs. 基准对比 ({sim_years}年累计)",
-        "comp_desc": "将您当前的优化策略与“不做任何操作”（不进行 Roth 转换，不进行资本利得变现）的基准方案进行对比，基于{sim_years}年模拟。",
-        "kpi_nw_gain": "最终净资产提升",
+        "comp_desc": "将您当前的优化策略与“不做任何操作”（不进行 Roth 转换，不进行资本利得变现）的基准方案进行对比。策略的成功标准是最大化您的平均预期净资产（按生存概率加权）。",
+        "kpi_nw_gain": "预期净资产提升 (平均)",
         "kpi_tax_saved": "累计节省税款",
         "kpi_tax_extra": "前期税务成本",
         "kpi_roth_boost": "免税 Roth 账户增幅",
@@ -169,12 +174,12 @@ LANG_MAP = {
         "tab_lab": "🔬 策略实验室",
         "tab_data": "💾 数据管理",
         "lab_roth_h": "Roth 转换敏感性分析",
-        "lab_roth_desc": "本模拟测试各种固定的年度 Roth 转换金额，以观察其对长远总净资产的影响。假设转换每年进行，直到 RMD 开始或 IRA 耗尽。曲线的峰值代表了平衡当前税收与未来 RMD 税收的数学最优解。（基于至少 {lab_horizon} 年的模拟周期）。",
+        "lab_roth_desc": "本模拟测试各种固定的年度 Roth 转换金额，以观察其对长远总净资产的影响。假设转换每年进行，直到 RMD 开始或 IRA 耗尽。曲线的峰值代表了平衡当前税收与未来 RMD 税收的数学最优解。（基于至少 {lab_horizon} 年的模拟周期）。我们对未来年份应用了生存折扣 (Survival Discount)。由于高龄年份的存活概率较低，早期退休阶段的资产具有更高的预期效用 (Expected Utility)——即这些资产更有可能被家庭实际使用。",
         "lab_roth_chart_x": "年度转换金额",
         "lab_roth_chart_y": "最终总净资产",
         "lab_roth_optimum": "根据模拟，最佳年度 Roth 转换金额约为",
         "lab_stop_h": "Roth 转换周期（停止年龄）优化",
-        "lab_stop_desc": "使用上述最佳金额 (${best_amt:,.0f})，测试在哪个年龄停止转换可以使净资产最大化。通常在社保开始领取时（67-70岁）停止转换是理想的，以避免进入更高的税率档位。",
+        "lab_stop_desc": "使用上述最佳金额 (${best_amt:,.0f})，测试在哪个年龄停止转换可以使净资产最大化。通常，在强制最低提款 (RMD) 开始前持续进行转换在数学上是最优的。",
         "lab_stop_chart_x": "停止年龄",
         "lab_stop_optimum": "最佳停止 Roth 转换的年龄是"
     }
@@ -229,7 +234,7 @@ with st.sidebar:
     inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
     inflation_rate = inflation_rate_raw / 100
 
-# --- 3. CORE TAX CALCULATOR ---
+# --- 3. CORE CALCULATORS ---
 def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status, year_idx):
     ord_tax = 0
     if status == "MFJ":
@@ -290,7 +295,15 @@ def get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare):
     if magi > t1: return 1, 80 * 12 * num_spouses_medicare * inf_factor
     return 0, 0
 
-# --- 4. CALCULATION ENGINE (WITH CACHE) ---
+def get_survival_prob(age):
+    # Simplified lookup based on actuarial trends (prob of survival for one individual)
+    # Returns 1.0 until age 65, then declines
+    if age < 65: return 1.0
+    if age >= 100: return 0.05
+    # Approximate mortality curve (roughly 1% drop per year starting at 65)
+    return max(0.05, 1.0 - (age - 65) * 0.02)
+
+# --- 4. CALCULATION ENGINE ---
 @st.cache_data
 def calculate_roadmap(
     ira_h_init, ira_w_init, roth_init, brokerage_init,
@@ -329,6 +342,11 @@ def calculate_roadmap(
         inf_factor = (1 + inflation_rate) ** i
         ev = []
         
+        # Survival Probabilities
+        prob_h = get_survival_prob(age_h)
+        prob_w = get_survival_prob(age_w)
+        joint_survival = 1 - ((1 - prob_h) * (1 - prob_w))
+
         if year == retire_year: ev.append(t_internal["event_retire"])
         if age_h == 65: ev.append(t_internal["event_hmed"])
         if age_w == 65: ev.append(t_internal["event_wmed"])
@@ -449,12 +467,15 @@ def calculate_roadmap(
         cur_roth = (cur_roth + active_conversion + yearly_roth_growth)
         cur_brokerage *= (1 + broker_growth)
         
+        total_nw = cur_ira_h + cur_ira_w + cur_roth + cur_brokerage
+        
         rows.append({
             "Year": year, "Ages": f"{age_h}/{age_w}", "INPUT: SS": total_ss, 
             "raw_div": taxable_div_in, "raw_muni": muni_int_in, "raw_cg": sim_annual_ltcg,
             "LEVER: Roth": active_conversion, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "raw_outflow": target_expense, "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, 
-            "Brokerage": cur_brokerage, "Total Net Worth": cur_ira_h + cur_ira_w + cur_roth + cur_brokerage,
+            "Brokerage": cur_brokerage, "Total Net Worth": total_nw,
+            "Expected Net Worth": total_nw * joint_survival,
             "IRMAA": "✅ Safe" if irmaa_tier == 0 else f"🚩 Tier {irmaa_tier}",
             "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
         })
@@ -464,7 +485,6 @@ def calculate_roadmap(
 st.title(t["title"])
 st.info(t["privacy_note"])
 
-# Bundle all reactive inputs for structural mapping to cached calculator argument signature
 core_args = {
     "ira_h_init": ira_h_init, "ira_w_init": ira_w_init, "roth_init": roth_init, "brokerage_init": brokerage_init,
     "retire_year": retire_year, "sim_years": sim_years, "h_age_at_retire": h_age_at_retire, "w_age_at_retire": w_age_at_retire,
@@ -478,23 +498,25 @@ core_args = {
 tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
 
 with tab_roadmap:
-    st.subheader(t["motivation_h"])
-    st.write(t["motivation_body"])
+    with st.expander(t["about_expander"], expanded=False):
+        st.subheader(t["motivation_h"])
+        st.write(t["motivation_body"])
 
-    st.subheader(t["meth_h"])
-    st.markdown(t["meth_body"])
+        st.subheader(t["meth_h"])
+        st.markdown(t["meth_body"])
 
-    st.subheader(t["use_h"])
-    st.markdown(t["use_body"])
-
+        st.subheader(t["use_h"])
+        st.markdown(t["use_body"])
+        
     df_baseline = calculate_roadmap(**core_args, conv_override=0, ltcg_override=0)
     df = calculate_roadmap(**core_args)
 
     st.subheader(t["comp_header"].format(sim_years=sim_years))
     st.write(t["comp_desc"].format(sim_years=sim_years))
 
-    nw_base = df_baseline.iloc[-1]['Total Net Worth']
-    nw_strat = df.iloc[-1]['Total Net Worth']
+    # --- EXPECTED NET WORTH COMPARISON ---
+    nw_base = df_baseline['Expected Net Worth'].mean()
+    nw_strat = df['Expected Net Worth'].mean()
     nw_gain = nw_strat - nw_base
 
     tax_base = df_baseline['OUT: Fed Tax'].sum()
@@ -560,16 +582,25 @@ with tab_roadmap:
     # --- ACTIVE STRATEGY DETAILS ---
     st.subheader(t["kpi_h"].format(sim_years=sim_years))
     k0, k1, k2, k3, k4 = st.columns(5)
-    k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}", help=t["kpi_cap_init"])
-    k1.metric(t["kpi_nw"].format(sim_years=sim_years), f"${df.iloc[-1]['Total Net Worth']:,.0f}", help=t["kpi_cap_nw"].format(sim_years=sim_years))
-    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df['raw_outflow'].sum():,.0f}", help=t["kpi_cap_outflow"].format(sim_years=sim_years))
-    k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}", help=t["kpi_cap_tax"].format(sim_years=sim_years))
-    k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}", help=t["kpi_cap_roth"])
+    k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}")
+    # Display the Expected Net Worth Metric instead of raw Total Net Worth
+    k1.metric(t["kpi_nw"], f"${df['Expected Net Worth'].mean():,.0f}")
+    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df['raw_outflow'].sum():,.0f}")
+    k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
+    k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
 
     st.divider()
     st.subheader(f"{t['roadmap_h']} {retire_year}")
-    col_map = {"INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], "Total Net Worth": t["col_nw"], "🚨 Important Events": t["col_events"]}
-    st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}"}))
+    
+    col_map = {
+        "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], 
+        "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], 
+        "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], 
+        "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
+        "🚨 Important Events": t["col_events"]
+    }
+    
+    st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
 
     # Summary Table
     st.divider()
@@ -594,95 +625,70 @@ with tab_roadmap:
     st.table(df_final_sum_renamed.style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", yield_col: "${:,.0f}", tax_col: "${:,.0f}"}))
 
 with tab_lab:
-    lab_horizon = max(sim_years, 30)
+    # 1. Enforce a minimum of 15 years for the Strategy Lab to allow the algorithm sufficient runway,
+    # otherwise follow the user's simulation horizon.
+    lab_horizon = max(15, sim_years)
+    
     st.subheader(t["lab_roth_h"])
     st.write(t["lab_roth_desc"].format(lab_horizon=lab_horizon))
     
-    # Optimization parameters
     total_ira_init = ira_h_init + ira_w_init
     lab_upper_bound = min(200000, int((total_ira_init // 10000 + 1) * 10000))
     lab_upper_bound = max(10000, lab_upper_bound) 
     test_amounts = list(range(0, lab_upper_bound + 1, 10000))
     lab_results = []
     
-    with st.spinner("Analyzing Roth efficiency..."):
+    with st.spinner(f"Analyzing Roth Conversion amounts over {lab_horizon} years..."):
         for amt in test_amounts:
             res_df_sim = calculate_roadmap(**core_args, conv_override=amt, horizon_override=lab_horizon)
+            # Survival Discount Logic: Use the average expected net worth across the horizon (Area Under Curve)
+            # This properly weights near-term balances higher than distant-future balances.
             lab_results.append({
                 "amt": amt,
-                "nw": res_df_sim.iloc[-1]['Total Net Worth'],
-                "tax": res_df_sim['OUT: Fed Tax'].sum()
+                "ex_nw": res_df_sim['Expected Net Worth'].mean()
             })
     
     res_df = pd.DataFrame(lab_results)
+    best_amt = res_df.loc[res_df["ex_nw"].idxmax(), "amt"]
     
-    # Pre-calculate optimum amount for drawing target indicators
-    best_idx = res_df["nw"].idxmax()
-    best_amt = res_df.loc[best_idx, "amt"]
-    
-    col_nw, col_tax = st.columns(2)
-    with col_nw:
-        st.write(f"**{t['lab_roth_chart_y']} (Objective)**")
-        base_nw = alt.Chart(res_df).encode(
-            x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-            y=alt.Y('nw:Q', title=t["lab_roth_chart_y"], scale=alt.Scale(zero=False)),
-            tooltip=[alt.Tooltip('amt:Q', title=t["lab_roth_chart_x"], format='$,.0f'), alt.Tooltip('nw:Q', title=t["lab_roth_chart_y"], format='$,.0f')]
-        )
-        line_nw = base_nw.mark_line(color='#2ecc71', strokeWidth=3)
-        rule_nw = alt.Chart(pd.DataFrame({'best_amt': [best_amt]})).mark_rule(
-            color='#e74c3c', strokeDash=[4, 4], strokeWidth=2
-        ).encode(x='best_amt:Q')
-        st.altair_chart((line_nw + rule_nw).properties(height=300), width="stretch")
-        
-    with col_tax:
-        st.write("**Cumulative Taxes Paid (Trade-off Cost)**")
-        base_tax = alt.Chart(res_df).encode(
-            x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-            y=alt.Y('tax:Q', title="Total Tax", scale=alt.Scale(zero=False)),
-            tooltip=[alt.Tooltip('amt:Q', title=t["lab_roth_chart_x"], format='$,.0f'), alt.Tooltip('tax:Q', title="Total Tax", format='$,.0f')]
-        )
-        line_tax = base_tax.mark_line(color='#3498db', strokeWidth=3)
-        rule_tax = alt.Chart(pd.DataFrame({'best_amt': [best_amt]})).mark_rule(
-            color='#e74c3c', strokeDash=[4, 4], strokeWidth=2
-        ).encode(x='best_amt:Q')
-        st.altair_chart((line_tax + rule_tax).properties(height=300), width="stretch")
-    
+    # Chart 1: Roth Conversion
+    chart1 = alt.Chart(res_df).mark_line(point=True, color='#2ecc71', strokeWidth=3).encode(
+        x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
+        y=alt.Y('ex_nw:Q', title="Survival-Weighted Expected NW", scale=alt.Scale(zero=False))
+    )
+    rule1 = alt.Chart(pd.DataFrame({'amt': [best_amt]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='amt:Q')
+    st.altair_chart(chart1 + rule1, use_container_width=True)
     st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
 
-    if best_amt > 0:
-        st.divider()
-        st.subheader(t["lab_stop_h"])
-        st.write(t["lab_stop_desc"].format(best_amt=best_amt))
-        
-        by_h = 2026 - h_age_at_retire
-        rmd_a_h = 75 if by_h >= 1960 else 73
-        
-        test_ages = list(range(h_age_at_retire, rmd_a_h + 1))
-        if len(test_ages) > 1:
-            stop_results = []
-            with st.spinner("Analyzing conversion window..."):
-                for sa in test_ages:
-                    res_df_stop = calculate_roadmap(**core_args, conv_override=best_amt, horizon_override=lab_horizon, conv_stop_age_override=sa)
-                    stop_results.append({"age": sa, "nw": res_df_stop.iloc[-1]['Total Net Worth']})
+    st.divider()
+
+    # Chart 2: Stop Age Optimizer
+    st.subheader(t["lab_stop_h"])
+    st.write(t["lab_stop_desc"].format(best_amt=best_amt))
+    
+    # We maintain a sensible range for age optimization regardless of horizon
+    test_ages = list(range(65, 95))
+    age_results = []
+    
+    with st.spinner("Optimizing Stop Age..."):
+        for age in test_ages:
+            res_age_df = calculate_roadmap(**core_args, conv_override=best_amt, conv_stop_age_override=age, horizon_override=lab_horizon)
+            # Apply the same Survival Discount logic here
+            age_results.append({
+                "age": age,
+                "ex_nw": res_age_df['Expected Net Worth'].mean()
+            })
             
-            stop_df = pd.DataFrame(stop_results)
-            
-            # Pre-calculate optimum stop age for drawing target indicator
-            best_sa_idx = stop_df["nw"].idxmax()
-            best_sa = stop_df.loc[best_sa_idx, "age"]
-            
-            base_stop = alt.Chart(stop_df).encode(
-                x=alt.X('age:Q', title=t["lab_stop_chart_x"], axis=alt.Axis(format='d')),
-                y=alt.Y('nw:Q', title=t["lab_roth_chart_y"], scale=alt.Scale(zero=False)),
-                tooltip=[alt.Tooltip('age:Q', title=t["lab_stop_chart_x"]), alt.Tooltip('nw:Q', title=t["lab_roth_chart_y"], format='$,.0f')]
-            )
-            line_stop = base_stop.mark_line(color='#2ecc71', strokeWidth=3)
-            rule_stop = alt.Chart(pd.DataFrame({'best_sa': [best_sa]})).mark_rule(
-                color='#e74c3c', strokeDash=[4, 4], strokeWidth=2
-            ).encode(x='best_sa:Q')
-            st.altair_chart((line_stop + rule_stop).properties(height=300), width="stretch")
-            
-            st.success(f"💡 **{t['lab_stop_optimum']} {best_sa}**")
+    res_age_df = pd.DataFrame(age_results)
+    best_age = res_age_df.loc[res_age_df["ex_nw"].idxmax(), "age"]
+    
+    chart2 = alt.Chart(res_age_df).mark_line(point=True, color='#3498db', strokeWidth=3).encode(
+        x=alt.X('age:Q', title=t["lab_stop_chart_x"], scale=alt.Scale(zero=False)),
+        y=alt.Y('ex_nw:Q', title="Survival-Weighted Expected NW", scale=alt.Scale(zero=False))
+    )
+    rule2 = alt.Chart(pd.DataFrame({'age': [best_age]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='age:Q')
+    st.altair_chart(chart2 + rule2, use_container_width=True)
+    st.warning(f"🛑 **{t['lab_stop_optimum']} {best_age}**")
 
 with tab_data:
     st.subheader(t["tab_data"])
@@ -716,7 +722,6 @@ with tab_data:
     }
     
     json_string = json.dumps(current_profile, indent=4)
-    
     col_save, col_load = st.columns(2)
     
     with col_save:
@@ -737,12 +742,10 @@ with tab_data:
         if uploaded_file is not None:
             try:
                 loaded_profile = json.load(uploaded_file)
-                
-                # Push values seamlessly into session state keys
                 for key, value in loaded_profile.items():
                     st.session_state[key] = value
-                
-                st.success("✅ Profile loaded successfully! Refreshing components...")
-                st.rerun()
+                # Add a brief success message, then immediately trigger a rerun
+                st.success("✅ Profile loaded successfully! Refreshing...")
+                st.rerun()  # <--- This forces Streamlit to restart top-to-bottom with the new state            
             except Exception as e:
                 st.error(f"Error parsing profile file: {e}")
