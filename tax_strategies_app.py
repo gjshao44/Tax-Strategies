@@ -498,7 +498,7 @@ core_args = {
 tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
 
 with tab_roadmap:
-    with st.expander(t["about_expander"], expanded=False):
+    with st.expander("📖 " + t["motivation_h"] + " & " + t["meth_h"], expanded=False):
         st.subheader(t["motivation_h"])
         st.write(t["motivation_body"])
 
@@ -638,27 +638,40 @@ with tab_lab:
     test_amounts = list(range(0, lab_upper_bound + 1, 10000))
     lab_results = []
     
+    mid_idx = int(lab_horizon * 0.33)
+    end_idx = int(lab_horizon * 0.95)
+    
     with st.spinner(f"Analyzing Roth Conversion amounts over {lab_horizon} years..."):
         for amt in test_amounts:
             res_df_sim = calculate_roadmap(**core_args, conv_override=amt, horizon_override=lab_horizon)
-            # Survival Discount Logic: Use the average expected net worth across the horizon (Area Under Curve)
-            # This properly weights near-term balances higher than distant-future balances.
+            
+            mid_nw = res_df_sim.iloc[mid_idx]['Expected Net Worth']
+            end_nw = res_df_sim.iloc[end_idx]['Expected Net Worth']
+            weighted_score = (mid_nw * 0.2) + (end_nw * 0.8)
+            
             lab_results.append({
                 "amt": amt,
-                "ex_nw": res_df_sim['Expected Net Worth'].mean()
+                "ex_nw": weighted_score, # Used for charting
+                "mid_nw": mid_nw,
+                "end_nw": end_nw
             })
     
     res_df = pd.DataFrame(lab_results)
     best_amt = res_df.loc[res_df["ex_nw"].idxmax(), "amt"]
+    best_row = res_df.loc[res_df["ex_nw"].idxmax()]
     
     # Chart 1: Roth Conversion
     chart1 = alt.Chart(res_df).mark_line(point=True, color='#2ecc71', strokeWidth=3).encode(
         x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-        y=alt.Y('ex_nw:Q', title="Survival-Weighted Expected NW", scale=alt.Scale(zero=False))
+        y=alt.Y('ex_nw:Q', title="Weighted Optimization Score", scale=alt.Scale(zero=False))
     )
     rule1 = alt.Chart(pd.DataFrame({'amt': [best_amt]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='amt:Q')
-    st.altair_chart(chart1 + rule1, use_container_width=True)
+    st.altair_chart(chart1 + rule1, width='stretch')
     st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
+    
+    c1, c2 = st.columns(2)
+    c1.metric(f"🎯 Liquidity Milestone (Year {mid_idx})", f"${best_row['mid_nw']:,.0f}")
+    c2.metric(f"🛡️ Legacy Security (Year {end_idx})", f"${best_row['end_nw']:,.0f}")
 
     st.divider()
 
@@ -673,10 +686,14 @@ with tab_lab:
     with st.spinner("Optimizing Stop Age..."):
         for age in test_ages:
             res_age_df = calculate_roadmap(**core_args, conv_override=best_amt, conv_stop_age_override=age, horizon_override=lab_horizon)
-            # Apply the same Survival Discount logic here
+            
+            mid_nw = res_age_df.iloc[mid_idx]['Expected Net Worth']
+            end_nw = res_age_df.iloc[end_idx]['Expected Net Worth']
+            weighted_score = (mid_nw * 0.2) + (end_nw * 0.8)
+            
             age_results.append({
                 "age": age,
-                "ex_nw": res_age_df['Expected Net Worth'].mean()
+                "ex_nw": weighted_score
             })
             
     res_age_df = pd.DataFrame(age_results)
@@ -684,10 +701,10 @@ with tab_lab:
     
     chart2 = alt.Chart(res_age_df).mark_line(point=True, color='#3498db', strokeWidth=3).encode(
         x=alt.X('age:Q', title=t["lab_stop_chart_x"], scale=alt.Scale(zero=False)),
-        y=alt.Y('ex_nw:Q', title="Survival-Weighted Expected NW", scale=alt.Scale(zero=False))
+        y=alt.Y('ex_nw:Q', title="Weighted Optimization Score", scale=alt.Scale(zero=False))
     )
     rule2 = alt.Chart(pd.DataFrame({'age': [best_age]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='age:Q')
-    st.altair_chart(chart2 + rule2, use_container_width=True)
+    st.altair_chart(chart2 + rule2, width='stretch')
     st.warning(f"🛑 **{t['lab_stop_optimum']} {best_age}**")
 
 with tab_data:
