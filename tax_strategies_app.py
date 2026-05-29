@@ -93,8 +93,13 @@ LANG_MAP = {
         "lab_stop_h": "Roth Window Optimizer (Stop Age)",
         "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}), this tests which age to stop converting to maximize net worth. It is often mathematically optimal to continue conversions right up until Required Minimum Distributions (RMDs) begin.",
         "lab_stop_chart_x": "Stop Age",
-        "lab_stop_optimum": "The optimum age to stop Roth conversions is"
-    },
+        "lab_stop_optimum": "The optimum age to stop Roth conversions is",
+        "lab_pref_h": "⚙️ Optimization Preferences",
+        "lab_pref_label": "Optimization Focus: Early Liquidity vs. Late Legacy",
+        "lab_pref_help": "0.0 focuses entirely on early retirement cash flow (Year 5). 1.0 focuses entirely on maximizing your final wealth (Year 15). 0.5 balances both equally.",
+        "lab_pref_early": "Current Goal: Prioritizing **Early Retirement Liquidity**.",
+        "lab_pref_late": "Current Goal: Prioritizing **Long-Term Legacy & Security**.",
+        "lab_pref_balanced": "Current Goal: **Balanced approach**."    },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
         "privacy_note": "🔒 隐私与数据安全提示：本程序完全在您的本地浏览器会话中运行。任何用户数据、资产数值或个人税务信息均不会被收集、追踪或存储在任何外部服务器上。您的财务信息将完全保持私密。",
@@ -181,7 +186,13 @@ LANG_MAP = {
         "lab_stop_h": "Roth 转换周期（停止年龄）优化",
         "lab_stop_desc": "使用上述最佳金额 (${best_amt:,.0f})，测试在哪个年龄停止转换可以使净资产最大化。通常，在强制最低提款 (RMD) 开始前持续进行转换在数学上是最优的。",
         "lab_stop_chart_x": "停止年龄",
-        "lab_stop_optimum": "最佳停止 Roth 转换的年龄是"
+        "lab_stop_optimum": "最佳停止 Roth 转换的年龄是",
+        "lab_pref_h": "⚙️ 优化偏好设置",
+        "lab_pref_label": "优化重点：早期流动性 vs. 长期传承",
+        "lab_pref_help": "0.0 表示完全侧重早期退休现金流（第5年）；1.0 表示完全侧重于最大化最终财富（第15年）；0.5 表示两者平衡。",
+        "lab_pref_early": "当前目标：优先考虑 **早期退休流动性**。",
+        "lab_pref_late": "当前目标：优先考虑 **长期传承与财务安全**。",
+        "lab_pref_balanced": "当前目标：**平衡方案**。"    
     }
 }
 
@@ -628,6 +639,25 @@ with tab_lab:
     # 1. Enforce a minimum of 15 years for the Strategy Lab to allow the algorithm sufficient runway,
     # otherwise follow the user's simulation horizon.
     lab_horizon = max(15, sim_years)
+
+    st.subheader(t["lab_pref_h"])
+    legacy_weight = st.slider(
+        t["lab_pref_label"],
+        min_value=0.0, 
+        max_value=1.0, 
+        value=0.80, 
+        step=0.05,
+        help=t["lab_pref_help"]
+    )
+    mid_weight = 1.0 - legacy_weight
+    
+    if legacy_weight < 0.3:
+        st.caption(t["lab_pref_early"])
+    elif legacy_weight > 0.7:
+        st.caption(t["lab_pref_late"])
+    else:
+        st.caption(t["lab_pref_balanced"])    
+    st.divider()
     
     st.subheader(t["lab_roth_h"])
     st.write(t["lab_roth_desc"].format(lab_horizon=lab_horizon))
@@ -647,7 +677,7 @@ with tab_lab:
             
             mid_nw = res_df_sim.iloc[mid_idx]['Expected Net Worth']
             end_nw = res_df_sim.iloc[end_idx]['Expected Net Worth']
-            weighted_score = (mid_nw * 0.2) + (end_nw * 0.8)
+            weighted_score = (mid_nw * mid_weight) + (end_nw * legacy_weight)
             
             lab_results.append({
                 "amt": amt,
