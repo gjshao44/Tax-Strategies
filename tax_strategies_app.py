@@ -75,13 +75,14 @@ LANG_MAP = {
         "sum_liability": "Total {sim_years}-Yr Tax Liability",
         "total_label": "**TOTAL ASSETS**",
         "comp_header": "⚖️ Strategy vs. Baseline Comparison ({sim_years}-Year Summary)",
-        "comp_desc": "Compares your active strategy levers against a baseline scenario with no Roth conversions and no capital gains harvesting over {sim_years} years. Strategy success is measured by maximizing your Average Expected Net Worth (survival-weighted).",
+        "comp_desc": "Compares your active and optimal strategies against baseline (zero Roth conversions or capital gains harvesting)  over {sim_years} years. Success is measured by maximizing survival-weighted Expected Net Worth.",
         "kpi_nw_gain": "Expected Net Worth Gain (Mean)",
         "kpi_tax_saved": "Cumulative Taxes Saved",
         "kpi_tax_extra": "Upfront Tax Cost",
         "kpi_roth_boost": "Final Roth Reservoir Boost",
         "kpi_baseline": "Baseline",
         "kpi_strategy": "Strategy",
+        "kpi_optimum": "Optimum",
         "tab_roadmap": "📈 Detailed Roadmap",
         "tab_lab": "🔬 Strategy Lab",
         "tab_data": "💾 Data Management",
@@ -168,13 +169,14 @@ LANG_MAP = {
         "sum_liability": "{sim_years}年总税务责任",
         "total_label": "**资产总计**",
         "comp_header": "⚖️ 优化策略 vs. 基准对比 ({sim_years}年累计)",
-        "comp_desc": "将您当前的优化策略与“不做任何操作”（不进行 Roth 转换，不进行资本利得变现）的基准方案进行对比。策略的成功标准是最大化您的平均预期净资产（按生存概率加权）。",
+        "comp_desc": "在{sim_years}年周期内，将您的主动策略与最佳路径，同基准线（零罗斯转换或资本利得变现）进行对比。成功标准为最大化生存加权预期净值。",
         "kpi_nw_gain": "预期净资产提升 (平均)",
         "kpi_tax_saved": "累计节省税款",
         "kpi_tax_extra": "前期税务成本",
         "kpi_roth_boost": "免税 Roth 账户增幅",
         "kpi_baseline": "基准方案",
         "kpi_strategy": "优化策略",
+        "kpi_optimum": "最优方案",
         "tab_roadmap": "📈 详细路线图",
         "tab_lab": "🔬 策略实验室",
         "tab_data": "💾 数据管理",
@@ -315,6 +317,26 @@ def get_survival_prob(age):
     return max(0.05, 1.0 - (age - 65) * 0.02)
 
 # --- 4. CALCULATION ENGINE ---
+@st.cache_data
+def get_optimal_conversion(_core_args, _lab_horizon, _legacy_weight):
+    mid_weight = 1.0 - _legacy_weight
+    total_ira_init = _core_args["ira_h_init"] + _core_args["ira_w_init"]
+    upper_bound = max(10000, min(200000, int((total_ira_init // 10000 + 1) * 10000)))
+    test_amounts = list(range(0, upper_bound + 1, 10000))
+    
+    best_score = -1
+    best_amt = 0
+    mid_idx = int(_lab_horizon * 0.33)
+    end_idx = int(_lab_horizon * 0.95)
+    
+    for amt in test_amounts:
+        df_sim = calculate_roadmap(**_core_args, conv_override=amt, horizon_override=_lab_horizon)
+        score = (df_sim.iloc[mid_idx]['Expected Net Worth'] * mid_weight) + (df_sim.iloc[end_idx]['Expected Net Worth'] * _legacy_weight)
+        if score > best_score:
+            best_score = score
+            best_amt = amt
+    return best_amt
+
 @st.cache_data
 def calculate_roadmap(
     ira_h_init, ira_w_init, roth_init, brokerage_init,
@@ -506,6 +528,11 @@ core_args = {
     "lang": lang
 }
 
+lab_horizon = max(15, sim_years)
+legacy_weight_val = st.session_state.get("lab_legacy_weight", 0.80)
+best_amt_for_calc = get_optimal_conversion(core_args, lab_horizon, legacy_weight_val)
+st.session_state['best_amt'] = best_amt_for_calc
+
 tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
 
 with tab_roadmap:
@@ -519,72 +546,55 @@ with tab_roadmap:
         st.subheader(t["use_h"])
         st.markdown(t["use_body"])
         
+
+    # --- 1. CALCULATE THREE SCENARIOS ---
     df_baseline = calculate_roadmap(**core_args, conv_override=0, ltcg_override=0)
-    df = calculate_roadmap(**core_args)
+    df_active = calculate_roadmap(**core_args) # Uses your sidebar settings
 
     st.subheader(t["comp_header"].format(sim_years=sim_years))
     st.write(t["comp_desc"].format(sim_years=sim_years))
 
-    # --- EXPECTED NET WORTH COMPARISON ---
-    nw_base = df_baseline['Expected Net Worth'].mean()
-    nw_strat = df['Expected Net Worth'].mean()
-    nw_gain = nw_strat - nw_base
+    # Retrieve the Optimum from the Lab
+    df_optimal = calculate_roadmap(**core_args, conv_override=best_amt_for_calc)
+    
+    # --- 2. EXTRACT METRICS ---
+    nw_base, nw_strat, nw_opt = df_baseline['Expected Net Worth'].mean(), df_active['Expected Net Worth'].mean(), df_optimal['Expected Net Worth'].mean()
+    tax_base, tax_strat, tax_opt = df_baseline['OUT: Fed Tax'].sum(), df_active['OUT: Fed Tax'].sum(), df_optimal['OUT: Fed Tax'].sum()
+    roth_base, roth_strat, roth_opt = df_baseline.iloc[-1]['Roth Bal'], df_active.iloc[-1]['Roth Bal'], df_optimal.iloc[-1]['Roth Bal']
 
-    tax_base = df_baseline['OUT: Fed Tax'].sum()
-    tax_strat = df['OUT: Fed Tax'].sum()
-    tax_saved = tax_base - tax_strat
-
-    roth_base = df_baseline.iloc[-1]['Roth Bal']
-    roth_strat = df.iloc[-1]['Roth Bal']
-    roth_boost = roth_strat - roth_base
-
+    # --- 3. UI COLUMNS (Triple Comparison) ---
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        sign_nw = "+" if nw_gain >= 0 else ""
-        color_nw = "#2ecc71" if nw_gain >= 0 else "#e74c3c"
-        bg_nw = "rgba(46, 204, 113, 0.08)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.08)"
-        border_nw = "rgba(46, 204, 113, 0.3)" if nw_gain >= 0 else "rgba(231, 76, 60, 0.3)"
         st.markdown(f"""
-        <div style="background-color: {bg_nw}; border: 1px solid {border_nw}; padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_nw_gain"]}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_nw};">{sign_nw}${nw_gain:,.0f}</p>
-            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${nw_base:,.0f} vs {t["kpi_strategy"]}: ${nw_strat:,.0f}</span>
+        <div style="background-color: rgba(46, 204, 113, 0.08); border: 1px solid rgba(46, 204, 113, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_nw"]}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #2ecc71;">${nw_strat:,.0f}</p>
+            <span style="font-size: 0.8rem; color: #888888;">
+                Baseline: ${nw_base:,.0f} | Optimum: ${nw_opt:,.0f}
+            </span>
         </div>
         """, unsafe_allow_html=True)
 
     with c2:
-        if tax_saved >= 0:
-            tax_title = t["kpi_tax_saved"]
-            tax_color = "#2ecc71"
-            tax_bg = "rgba(46, 204, 113, 0.08)"
-            tax_border = "rgba(46, 204, 113, 0.3)"
-            tax_val_str = f"+${tax_saved:,.0f}"
-        else:
-            tax_title = t["kpi_tax_extra"]
-            tax_color = "#f39c12"  
-            tax_bg = "rgba(243, 156, 18, 0.08)"
-            tax_border = "rgba(243, 156, 18, 0.3)"
-            tax_val_str = f"-${abs(tax_saved):,.0f}"
-            
         st.markdown(f"""
-        <div style="background-color: {tax_bg}; border: 1px solid {tax_border}; padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{tax_title}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {tax_color};">{tax_val_str}</p>
-            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${tax_base:,.0f} vs {t["kpi_strategy"]}: ${tax_strat:,.0f}</span>
+        <div style="background-color: rgba(243, 156, 18, 0.08); border: 1px solid rgba(243, 156, 18, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_tax"]}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #f39c12;">${tax_strat:,.0f}</p>
+            <span style="font-size: 0.8rem; color: #888888;">
+                Baseline: ${tax_base:,.0f} | Optimum: ${tax_opt:,.0f}
+            </span>
         </div>
         """, unsafe_allow_html=True)
 
     with c3:
-        sign_roth = "+" if roth_boost >= 0 else ""
-        color_roth = "#3498db" if roth_boost >= 0 else "#e74c3c"
-        bg_roth = "rgba(52, 152, 219, 0.08)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
-        border_roth = "rgba(52, 152, 219, 0.3)" if roth_boost >= 0 else "rgba(231, 76, 60, 0.08)"
         st.markdown(f"""
-        <div style="background-color: {bg_roth}; border: 1px solid {border_roth}; padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth_boost"]}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: {color_roth};">{sign_roth}${roth_boost:,.0f}</p>
-            <span style="font-size: 0.8rem; color: #888888;">{t["kpi_baseline"]}: ${roth_base:,.0f} vs {t["kpi_strategy"]}: ${roth_strat:,.0f}</span>
+        <div style="background-color: rgba(52, 152, 219, 0.08); border: 1px solid rgba(52, 152, 219, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth"]}</h4>
+            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #3498db;">${roth_strat:,.0f}</p>
+            <span style="font-size: 0.8rem; color: #888888;">
+                Baseline: ${roth_base:,.0f} | Optimum: ${roth_opt:,.0f}
+            </span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -595,11 +605,10 @@ with tab_roadmap:
     k0, k1, k2, k3, k4 = st.columns(5)
     k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}")
     # Display the Expected Net Worth Metric instead of raw Total Net Worth
-    k1.metric(t["kpi_nw"], f"${df['Expected Net Worth'].mean():,.0f}")
-    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df['raw_outflow'].sum():,.0f}")
-    k3.metric(t["kpi_tax"], f"${df['OUT: Fed Tax'].sum():,.0f}")
-    k4.metric(t["kpi_roth"], f"${df.iloc[-1]['Roth Bal']:,.0f}")
-
+    k1.metric(t["kpi_nw"], f"${df_active['Expected Net Worth'].mean():,.0f}") 
+    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df_active['raw_outflow'].sum():,.0f}")
+    k3.metric(t["kpi_tax"], f"${df_active['OUT: Fed Tax'].sum():,.0f}")
+    k4.metric(t["kpi_roth"], f"${df_active.iloc[-1]['Roth Bal']:,.0f}")
     st.divider()
     st.subheader(f"{t['roadmap_h']} {retire_year}")
     
@@ -611,19 +620,19 @@ with tab_roadmap:
         "🚨 Important Events": t["col_events"]
     }
     
-    st.table(df[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
+    st.table(df_active[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
 
     # Summary Table
     st.divider()
     st.subheader(t["summary_h"].format(sim_years=sim_years))
-    total_tax = df["OUT: Fed Tax"].sum()
-    total_taxable_yield = df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_rmd"].sum()
+    total_tax = df_active["OUT: Fed Tax"].sum()
+    total_taxable_yield = df_active["raw_div"].sum() + df_active["raw_cg"].sum() + df_active["raw_rmd"].sum()
     tax_per_dollar = total_tax / max(1, total_taxable_yield)
 
     summary_rows = [
-        {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df.iloc[-1]['IRA Bal'], "Yield": df["raw_rmd"].sum(), "Liability": df["raw_rmd"].sum() * tax_per_dollar},
-        {"Type": t["acc_roth"], "Init": roth_init, "Final": df.iloc[-1]['Roth Bal'], "Yield": df["raw_roth_yield"].sum(), "Liability": 0.0},
-        {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df.iloc[-1]['Brokerage'], "Yield": df["raw_div"].sum() + df["raw_cg"].sum() + df["raw_muni"].sum(), "Liability": (df["raw_div"].sum() + df["raw_cg"].sum()) * tax_per_dollar}
+        {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df_active.iloc[-1]['IRA Bal'], "Yield": df_active["raw_rmd"].sum(), "Liability": df_active["raw_rmd"].sum() * tax_per_dollar},
+        {"Type": t["acc_roth"], "Init": roth_init, "Final": df_active.iloc[-1]['Roth Bal'], "Yield": df_active["raw_roth_yield"].sum(), "Liability": 0.0},
+        {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df_active.iloc[-1]['Brokerage'], "Yield": df_active["raw_div"].sum() + df_active["raw_cg"].sum() + df_active["raw_muni"].sum(), "Liability": (df_active["raw_div"].sum() + df_active["raw_cg"].sum()) * tax_per_dollar}
     ]
     df_sum_table = pd.DataFrame(summary_rows)
     totals_row = {"Type": t["total_label"], "Init": df_sum_table["Init"].sum(), "Final": df_sum_table["Final"].sum(), "Yield": df_sum_table["Yield"].sum(), "Liability": df_sum_table["Liability"].sum()}
@@ -638,8 +647,6 @@ with tab_roadmap:
 with tab_lab:
     # 1. Enforce a minimum of 15 years for the Strategy Lab to allow the algorithm sufficient runway,
     # otherwise follow the user's simulation horizon.
-    lab_horizon = max(15, sim_years)
-
     st.subheader(t["lab_pref_h"])
     legacy_weight = st.slider(
         t["lab_pref_label"],
@@ -647,7 +654,8 @@ with tab_lab:
         max_value=1.0, 
         value=0.80, 
         step=0.05,
-        help=t["lab_pref_help"]
+        help=t["lab_pref_help"],
+        key="lab_legacy_weight"
     )
     mid_weight = 1.0 - legacy_weight
     
