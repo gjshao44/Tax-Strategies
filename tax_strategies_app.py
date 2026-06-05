@@ -27,9 +27,9 @@ LANG_MAP = {
 * **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
 * **Observe Expected Net Worth:** Watch the comparison and roadmap to see how paying taxes early preserves long-term survival-weighted capital.
 """,
-        "kpi_h": "🚀 {sim_years}-Year Strategic Outlook",
+        "kpi_h": "🚀 {sim_years}-Year Strategy vs. Baseline",
         "kpi_init_nw": "Initial Net Worth",
-        "kpi_nw": "Avg. Expected Net Worth",
+        "kpi_nw": "Weighted Expected NW",
         "kpi_tax": "Total Federal Tax Paid",
         "kpi_rmd": "Total RMD Amount",
         "kpi_roth": "Total Roth Reservoir",
@@ -126,9 +126,9 @@ LANG_MAP = {
 * **探索策略实验室:** 导航到“策略实验室”选项卡，运行自动化敏感性分析，找出数学上最优的年度 Roth 转换金额和时间窗口。
 * **观察预期净资产 (Expected Net Worth):** 关注路线图和对比，观察通过早期纳税如何保护长期的生存加权资本。
 """,
-        "kpi_h": "🚀 {sim_years}年战略展望",
+        "kpi_h": "🚀 {sim_years}年策略 vs. 基准对比",
         "kpi_init_nw": "初始净资产", 
-        "kpi_nw": "平均预期净资产",
+        "kpi_nw": "加权预期净资产",
         "kpi_tax": "联邦税总支出",
         "kpi_rmd": "最低强制提款(RMD)总额",
         "kpi_roth": "Roth 账户储备",
@@ -211,24 +211,13 @@ LANG_MAP = {
 with st.sidebar:
     lang = st.radio("Language / 语言选择", ["English", "Chinese"], horizontal=True)
     t = LANG_MAP[lang]
-    
-    st.header(t["sidebar_timeline"])
-    retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
-    sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 20)))
-    h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=int(st.session_state.get("h_age_at_retire", 64)))
-    w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=int(st.session_state.get("w_age_at_retire", 64)))
-
-    st.header(t["sidebar_assets"])
-    ira_h_init = st.number_input("Husband IRA Balance ($)", value=int(st.session_state.get("ira_h_init", 1500000)))
-    ira_w_init = st.number_input("Wife IRA Balance ($)", value=int(st.session_state.get("ira_w_init", 10000)))
-    roth_init = st.number_input("Roth IRA Balance ($)", value=int(st.session_state.get("roth_init", 100000)))
-    brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=int(st.session_state.get("brokerage_init", 1000000)))
 
     st.header(t["sidebar_levers"])
     status_options = ["MFJ", "Single", "MFS"]
     saved_status = st.session_state.get("tax_status", "MFJ")
     status_idx = status_options.index(saved_status) if saved_status in status_options else 0
     tax_status = st.selectbox(t["filing_status"], status_options, index=status_idx)
+    sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 20)))
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, value=int(st.session_state.get("roth_conv", 40000)), step=5000)
     annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, value=int(st.session_state.get("annual_ltcg", 20000)), step=10000)
 
@@ -239,22 +228,33 @@ with st.sidebar:
     taxable_div_in = st.number_input("Annual Taxable Dividends", value=int(st.session_state.get("taxable_div_in", 33000)))
     muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=int(st.session_state.get("muni_int_in", 37000)))
     last_salary = st.number_input("Final Salary (Retirement Year)", value=int(st.session_state.get("last_salary", 0)))
-    
-    st.header(t["sidebar_ss"])
-    ss_h_monthly = st.number_input("H Monthly SS ($)", value=int(st.session_state.get("ss_h_monthly", 4000)))
-    ss_h_start = st.number_input("H Start Year", value=int(st.session_state.get("ss_h_start", 2029)))
-    ss_w_monthly = st.number_input("W Monthly SS ($)", value=int(st.session_state.get("ss_w_monthly", 3000)))
-    ss_w_start = st.number_input("W Start Year", value=int(st.session_state.get("ss_w_start", 2029)))
 
-    st.header(t["sidebar_growth"])
-    ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
-    ira_growth = ira_growth_raw / 100
-    roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("roth_growth_raw", 5.0)))
-    roth_growth = roth_growth_raw / 100
-    broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("broker_growth_raw", 3.0)))
-    broker_growth = broker_growth_raw / 100
-    inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
-    inflation_rate = inflation_rate_raw / 100
+    with st.expander(t["sidebar_timeline"], expanded=False):
+        retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
+        h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=int(st.session_state.get("h_age_at_retire", 64)))
+        w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=int(st.session_state.get("w_age_at_retire", 64)))
+
+    with st.expander(t["sidebar_assets"], expanded=False):
+        ira_h_init = st.number_input("Husband IRA Balance ($)", value=int(st.session_state.get("ira_h_init", 1500000)))
+        ira_w_init = st.number_input("Wife IRA Balance ($)", value=int(st.session_state.get("ira_w_init", 10000)))
+        roth_init = st.number_input("Roth IRA Balance ($)", value=int(st.session_state.get("roth_init", 100000)))
+        brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=int(st.session_state.get("brokerage_init", 1000000)))
+
+    with st.expander(t["sidebar_ss"], expanded=False):
+        ss_h_monthly = st.number_input("H Monthly SS ($)", value=int(st.session_state.get("ss_h_monthly", 4000)))
+        ss_h_start = st.number_input("H Start Year", value=int(st.session_state.get("ss_h_start", 2029)))
+        ss_w_monthly = st.number_input("W Monthly SS ($)", value=int(st.session_state.get("ss_w_monthly", 3000)))
+        ss_w_start = st.number_input("W Start Year", value=int(st.session_state.get("ss_w_start", 2029)))
+
+    with st.expander(t["sidebar_growth"], expanded=False):
+        ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
+        ira_growth = ira_growth_raw / 100
+        roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("roth_growth_raw", 5.0)))
+        roth_growth = roth_growth_raw / 100
+        broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("broker_growth_raw", 3.0)))
+        broker_growth = broker_growth_raw / 100
+        inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
+        inflation_rate = inflation_rate_raw / 100
 
 # --- 3. CORE CALCULATORS ---
 def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status, year_idx):
@@ -582,79 +582,69 @@ with tab_roadmap:
     df_baseline = calculate_roadmap(**core_args, conv_override=0, ltcg_override=0)
     df_active = calculate_roadmap(**core_args) # Uses your sidebar settings
 
-    st.subheader(t["comp_header"].format(sim_years=sim_years))
-    st.write(t["comp_desc"].format(sim_years=sim_years))
-
     # Retrieve the Optimum from the Lab
     df_optimal = calculate_roadmap(**core_args, conv_override=best_amt_for_calc)
-    
+
     # --- 2. EXTRACT METRICS ---
-    nw_base, nw_strat, nw_opt = df_baseline['Expected Net Worth'].mean(), df_active['Expected Net Worth'].mean(), df_optimal['Expected Net Worth'].mean()
+    mid_idx = int(sim_years * 0.33)
+    end_idx = int(sim_years * 0.95)
+    mid_w = 1.0 - legacy_weight_val
+    end_w = legacy_weight_val
+
+    def _weighted_score(df):
+        return df.iloc[mid_idx]['Expected Net Worth'] * mid_w + df.iloc[end_idx]['Expected Net Worth'] * end_w
+
+    nw_base, nw_strat, nw_opt = _weighted_score(df_baseline), _weighted_score(df_active), _weighted_score(df_optimal)
     tax_base, tax_strat, tax_opt = df_baseline['OUT: Fed Tax'].sum(), df_active['OUT: Fed Tax'].sum(), df_optimal['OUT: Fed Tax'].sum()
     roth_base, roth_strat, roth_opt = df_baseline.iloc[-1]['Roth Bal'], df_active.iloc[-1]['Roth Bal'], df_optimal.iloc[-1]['Roth Bal']
 
-    # --- 3. UI COLUMNS (Triple Comparison) ---
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
-        st.markdown(f"""
-        <div style="background-color: rgba(46, 204, 113, 0.08); border: 1px solid rgba(46, 204, 113, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_nw"]}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #2ecc71;">${nw_strat:,.0f}</p>
-            <span style="font-size: 0.8rem; color: #888888;">
-                Baseline: ${nw_base:,.0f} | Optimum: ${nw_opt:,.0f}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c2:
-        st.markdown(f"""
-        <div style="background-color: rgba(243, 156, 18, 0.08); border: 1px solid rgba(243, 156, 18, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_tax"]}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #f39c12;">${tax_strat:,.0f}</p>
-            <span style="font-size: 0.8rem; color: #888888;">
-                Baseline: ${tax_base:,.0f} | Optimum: ${tax_opt:,.0f}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c3:
-        st.markdown(f"""
-        <div style="background-color: rgba(52, 152, 219, 0.08); border: 1px solid rgba(52, 152, 219, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
-            <h4 style="margin: 0; color: #888888; font-size: 0.9rem; font-weight: normal;">{t["kpi_roth"]}</h4>
-            <p style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: bold; color: #3498db;">${roth_strat:,.0f}</p>
-            <span style="font-size: 0.8rem; color: #888888;">
-                Baseline: ${roth_base:,.0f} | Optimum: ${roth_opt:,.0f}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # --- ACTIVE STRATEGY DETAILS ---
+    # --- 3. UNIFIED KPI DASHBOARD ---
     st.subheader(t["kpi_h"].format(sim_years=sim_years))
-    k0, k1, k2, k3, k4, k5 = st.columns(6)
-    k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}")
-    # Display the Expected Net Worth Metric instead of raw Total Net Worth
-    k1.metric(t["kpi_nw"], f"${df_active['Expected Net Worth'].mean():,.0f}") 
-    k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df_active['raw_outflow'].sum():,.0f}")
-    k3.metric(t["kpi_tax"], f"${df_active['OUT: Fed Tax'].sum():,.0f}")
-    k4.metric(t["kpi_rmd"], f"${df_active['INPUT: RMDs'].sum():,.0f}")
-    k5.metric(t["kpi_roth"], f"${df_active.iloc[-1]['Roth Bal']:,.0f}")
-    st.divider()
-    st.subheader(f"{t['roadmap_h']} {retire_year}")
-    
-    col_map = {
-        "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], 
-        "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "INPUT: RMDs": t["col_rmd"], "OUT: MAGI": t["col_magi"], 
-        "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], 
-        "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
-        "🚨 Important Events": t["col_events"]
-    }
-    
-    st.table(df_active[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
+    st.caption(t["comp_desc"].format(sim_years=sim_years))
+    init_nw = ira_h_init + ira_w_init + roth_init + brokerage_init
+    total_outflow = df_active['raw_outflow'].sum()
+    total_rmd = df_active['INPUT: RMDs'].sum()
 
-    # Summary Table
+    def _kpi_card(label, value, color, comparison=None):
+        comp_html = ""
+        if comparison:
+            comp_html = f'<span style="font-size: 0.75rem; color: #888888;">{comparison}</span>'
+        return f"""
+        <div style="background-color: rgba({color}, 0.08); border: 1px solid rgba({color}, 0.3); padding: 12px 8px; border-radius: 8px; text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+            <h4 style="margin: 0; color: #888888; font-size: 0.8rem; font-weight: normal;">{label}</h4>
+            <p style="margin: 4px 0 2px 0; font-size: 1.4rem; font-weight: bold; color: rgba({color}, 1);">{value}</p>
+            {comp_html}
+        </div>
+        """
+
+    ira_pct = (ira_h_init + ira_w_init) / max(1, init_nw) * 100
+    roth_pct = roth_init / max(1, init_nw) * 100
+    broker_pct = brokerage_init / max(1, init_nw) * 100
+    total_living = df_active['raw_outflow'].sum() - df_active['OUT: Fed Tax'].sum()
+    total_tax_paid = df_active['OUT: Fed Tax'].sum()
+    rmd_pct_of_ira = total_rmd / max(1, ira_h_init + ira_w_init) * 100
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        st.markdown(_kpi_card(t["kpi_init_nw"], f"${init_nw:,.0f}", "155, 89, 182",
+            f"IRA {ira_pct:.0f}% | Roth {roth_pct:.0f}% | Taxable {broker_pct:.0f}%"), unsafe_allow_html=True)
+    with c2:
+        st.markdown(_kpi_card(t["kpi_nw"], f"${nw_strat:,.0f}", "46, 204, 113",
+            f"Base: ${nw_base:,.0f} | Opt: ${nw_opt:,.0f}"), unsafe_allow_html=True)
+    with c3:
+        st.markdown(_kpi_card(t["kpi_total_outflow"].format(sim_years=sim_years), f"${total_outflow:,.0f}", "149, 165, 166",
+            f"Living: ${total_living:,.0f} | Tax: ${total_tax_paid:,.0f}"), unsafe_allow_html=True)
+    with c4:
+        st.markdown(_kpi_card(t["kpi_tax"], f"${tax_strat:,.0f}", "243, 156, 18",
+            f"Base: ${tax_base:,.0f} | Opt: ${tax_opt:,.0f}"), unsafe_allow_html=True)
+    with c5:
+        st.markdown(_kpi_card(t["kpi_rmd"], f"${total_rmd:,.0f}", "230, 126, 34",
+            f"{rmd_pct_of_ira:.0f}% of initial IRA balance"), unsafe_allow_html=True)
+    with c6:
+        st.markdown(_kpi_card(t["kpi_roth"], f"${roth_strat:,.0f}", "52, 152, 219",
+            f"Base: ${roth_base:,.0f} | Opt: ${roth_opt:,.0f}"), unsafe_allow_html=True)
+
+    # --- SUMMARY TABLE ---
     st.divider()
     st.subheader(t["summary_h"].format(sim_years=sim_years))
     total_tax = df_active["OUT: Fed Tax"].sum()
@@ -672,9 +662,31 @@ with tab_roadmap:
 
     yield_col = t["sum_yield"].format(sim_years=sim_years)
     tax_col = t["sum_liability"].format(sim_years=sim_years)
-    
+
     df_final_sum_renamed = df_final_sum_display.rename(columns={"Type": "Account", "Init": t["sum_init"], "Final": t["sum_final"], "Yield": yield_col, "Liability": tax_col})
     st.table(df_final_sum_renamed.style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", yield_col: "${:,.0f}", tax_col: "${:,.0f}"}))
+
+    # --- YEAR-BY-YEAR ROADMAP (expandable) ---
+    st.subheader(f"📋 {t['roadmap_h']} {retire_year}")
+    with st.expander("Click to expand year-by-year detail", expanded=False):
+        show_all_cols = st.checkbox("Show all columns", value=False, key="roadmap_all_cols")
+
+        col_map = {
+            "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"],
+            "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "INPUT: RMDs": t["col_rmd"], "OUT: MAGI": t["col_magi"],
+            "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"],
+            "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
+            "🚨 Important Events": t["col_events"]
+        }
+
+        if show_all_cols:
+            display_cols = ['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
+            fmt = {t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
+        else:
+            display_cols = ['Year', 'Ages', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: Fed Tax', 'raw_outflow', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
+            fmt = {t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
+
+        st.table(df_active[display_cols].rename(columns=col_map).style.format(fmt))
 
 with tab_lab:
     # 1. Enforce a minimum of 20 years for the Strategy Lab to allow the algorithm sufficient runway,
