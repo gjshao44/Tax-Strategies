@@ -89,22 +89,22 @@ LANG_MAP = {
         "tab_lab": "🔬 Strategy Lab",
         "tab_data": "💾 Data Management",
         "lab_roth_h": "Roth Conversion Sensitivity Analysis",
-        "lab_roth_desc": "This simulation tests various fixed annual Roth conversion amounts to see their impact on your long-term Total Net Worth. Conversions are assumed to occur annually until RMDs begin or the IRA is depleted. The peak of the curve represents the mathematical optimum balancing today's taxes vs. future RMD taxes. (Simulated over a {lab_horizon}-year minimum horizon). We apply a survival discount to future years. Because there is a lower probability of being alive in the distant future, assets held in early retirement have a higher expected utility—they are more likely to be utilized by the household.",
+        "lab_roth_desc": "Tests how much to convert from IRA to Roth each year. The peak of the curve is the sweet spot — pay manageable taxes now to avoid larger forced withdrawals later. ({lab_horizon}-year horizon, survival-weighted.)",
         "lab_roth_chart_x": "Annual Conversion Amount",
         "lab_roth_chart_y": "Final Net Worth",
         "lab_roth_optimum": "Based on the simulation, the optimum annual Roth conversion amount is approximately",
         "lab_stop_h": "Roth Window Optimizer (Stop Age)",
-        "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}), this tests which age to stop converting to maximize net worth. It is often mathematically optimal to continue conversions right up until Required Minimum Distributions (RMDs) begin.",
+        "lab_stop_desc": "Using the optimal amount (${best_amt:,.0f}/yr), finds the best age to stop converting. Usually best to keep going until RMDs force you to stop.",
         "lab_stop_chart_x": "Stop Age",
         "lab_stop_optimum": "The optimum age to stop Roth conversions is",
         "lab_pref_h": "⚙️ Optimization Preferences",
-        "lab_pref_label": "Optimization Focus: Early Liquidity vs. Late Legacy",
-        "lab_pref_help": "0.0 focuses entirely on early retirement cash flow (Year 5). 1.0 focuses entirely on maximizing your final wealth (Year 15). 0.5 balances both equally.",
+        "lab_pref_label": "Optimize for: Spending Now ← → Leaving More Later",
+        "lab_pref_help": "Slide left to prioritize having more cash available in early retirement. Slide right to prioritize maximizing what you leave behind. Middle balances both.",
         "lab_pref_early": "Current Goal: Prioritizing **Early Retirement Liquidity**.",
         "lab_pref_late": "Current Goal: Prioritizing **Long-Term Legacy & Security**.",
         "lab_pref_balanced": "Current Goal: **Balanced approach**.",
-        "lab_irmaa_label": "Max IRMAA Tier Allowed",
-        "lab_irmaa_help": "Limit the maximum Medicare IRMAA surcharge tier allowed in any simulation year. Tier 5 allows all tiers (no limit). Tier 0 restricts to no surcharge (Safe tier)."
+        "lab_irmaa_label": "Max Medicare Surcharge Allowed",
+        "lab_irmaa_help": "Limits how much extra Medicare premium you're willing to pay. 0 = no extra cost. Higher = allows more aggressive conversions that trigger surcharges."
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -188,22 +188,22 @@ LANG_MAP = {
         "tab_lab": "🔬 策略实验室",
         "tab_data": "💾 数据管理",
         "lab_roth_h": "Roth 转换敏感性分析",
-        "lab_roth_desc": "本模拟测试各种固定的年度 Roth 转换金额，以观察其对长远总净资产的影响。假设转换每年进行，直到 RMD 开始或 IRA 耗尽。曲线的峰值代表了平衡当前税收与未来 RMD 税收的数学最优解。（基于至少 {lab_horizon} 年的模拟周期）。我们对未来年份应用了生存折扣 (Survival Discount)。由于高龄年份的存活概率较低，早期退休阶段的资产具有更高的预期效用 (Expected Utility)——即这些资产更有可能被家庭实际使用。",
+        "lab_roth_desc": "测试每年从 IRA 转入 Roth 的最佳金额。曲线峰值即最优解——现在交适量的税，避免未来更大的强制提款税负。（{lab_horizon}年周期，生存加权。）",
         "lab_roth_chart_x": "年度转换金额",
         "lab_roth_chart_y": "最终总净资产",
         "lab_roth_optimum": "根据模拟，最佳年度 Roth 转换金额约为",
         "lab_stop_h": "Roth 转换周期（停止年龄）优化",
-        "lab_stop_desc": "使用上述最佳金额 (${best_amt:,.0f})，测试在哪个年龄停止转换可以使净资产最大化。通常，在强制最低提款 (RMD) 开始前持续进行转换在数学上是最优的。",
+        "lab_stop_desc": "使用最佳金额 (${best_amt:,.0f}/年)，找出最佳停止转换年龄。通常持续转换到 RMD 开始前效果最优。",
         "lab_stop_chart_x": "停止年龄",
         "lab_stop_optimum": "最佳停止 Roth 转换的年龄是",
         "lab_pref_h": "⚙️ 优化偏好设置",
-        "lab_pref_label": "优化重点：早期流动性 vs. 长期传承",
-        "lab_pref_help": "0.0 表示完全侧重早期退休现金流；1.0 表示完全侧重于最大化最终财富；0.5 表示两者平衡。",
+        "lab_pref_label": "优化目标：当前消费 ← → 长期传承",
+        "lab_pref_help": "左滑侧重早期退休时有更多可用现金。右滑侧重最大化留给后人的资产。中间为两者平衡。",
         "lab_pref_early": "当前目标：优先考虑 **早期退休流动性**。",
         "lab_pref_late": "当前目标：优先考虑 **长期传承与财务安全**。",
         "lab_pref_balanced": "当前目标：**平衡方案**。",
-        "lab_irmaa_label": "允许的最大 IRMAA 档位",
-        "lab_irmaa_help": "限制在任何模拟年份中允许的最大 Medicare IRMAA 附加费档位。档位 5 允许所有档位（无限制）。档位 0 限制为无附加费（安全档位）。"
+        "lab_irmaa_label": "允许的最大 Medicare 附加费",
+        "lab_irmaa_help": "限制您愿意承受的额外 Medicare 保费。0 = 无额外费用。越高 = 允许更激进的转换（会触发附加费）。"
     }
 }
 
@@ -696,14 +696,21 @@ with tab_lab:
     with col_pref1:
         legacy_weight = st.slider(
             t["lab_pref_label"],
-            min_value=0.0, 
-            max_value=1.0, 
-            value=0.80, 
+            min_value=0.0,
+            max_value=1.0,
+            value=0.80,
             step=0.05,
             help=t["lab_pref_help"],
             key="lab_legacy_weight"
         )
+        if legacy_weight < 0.3:
+            st.caption("← Prioritizing **spending power now**")
+        elif legacy_weight > 0.7:
+            st.caption("→ Prioritizing **leaving more later**")
+        else:
+            st.caption("↔ Balanced between spending now and leaving later")
     with col_pref2:
+        irmaa_monthly = {0: "$0", 1: "$80", 2: "$200", 3: "$320", 4: "$440", 5: "$480+"}
         max_irmaa_limit = st.slider(
             t["lab_irmaa_label"],
             min_value=0,
@@ -713,6 +720,13 @@ with tab_lab:
             help=t["lab_irmaa_help"],
             key="lab_max_irmaa"
         )
+        surcharge_str = irmaa_monthly[max_irmaa_limit]
+        if max_irmaa_limit == 0:
+            st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person** (no extra cost)")
+        elif max_irmaa_limit == 5:
+            st.caption(f"Max Medicare surcharge: **no limit** (all tiers allowed)")
+        else:
+            st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person**")
     mid_weight = 1.0 - legacy_weight
     st.divider()
     
@@ -758,7 +772,7 @@ with tab_lab:
     # Chart 1: Roth Conversion with continuous line + colored points
     line = alt.Chart(res_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-        y=alt.Y('raw_nw:Q', title="Expected Net Worth Score", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Weighted Expected Net Worth ($)", scale=alt.Scale(zero=False))
     )
     points = alt.Chart(res_df).mark_point(size=60, filled=True).encode(
         x=alt.X('amt:Q'),
@@ -776,6 +790,7 @@ with tab_lab:
     )
     rule1 = alt.Chart(pd.DataFrame({'amt': [best_amt]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='amt:Q')
     st.altair_chart(line + points + rule1, width='stretch')
+    st.caption("🟢 Green = within Medicare surcharge limit | 🔴 Red = exceeds limit | ┆ Dashed line = optimum")
     st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
     
     c1, c2 = st.columns(2)
@@ -815,7 +830,7 @@ with tab_lab:
     
     line2 = alt.Chart(res_age_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('age:Q', title=t["lab_stop_chart_x"], scale=alt.Scale(zero=False)),
-        y=alt.Y('raw_nw:Q', title="Expected Net Worth Score", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Weighted Expected Net Worth ($)", scale=alt.Scale(zero=False))
     )
     points2 = alt.Chart(res_age_df).mark_point(size=60, filled=True).encode(
         x=alt.X('age:Q'),
@@ -833,6 +848,7 @@ with tab_lab:
     )
     rule2 = alt.Chart(pd.DataFrame({'age': [best_age]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='age:Q')
     st.altair_chart(line2 + points2 + rule2, width='stretch')
+    st.caption("🔵 Blue = within Medicare surcharge limit | 🔴 Red = exceeds limit | ┆ Dashed line = optimum")
     st.warning(f"🛑 **{t['lab_stop_optimum']} {best_age}**")
 
 with tab_data:
