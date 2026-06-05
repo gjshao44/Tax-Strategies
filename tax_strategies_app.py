@@ -31,6 +31,7 @@ LANG_MAP = {
         "kpi_init_nw": "Initial Net Worth",
         "kpi_nw": "Avg. Expected Net Worth",
         "kpi_tax": "Total Federal Tax Paid",
+        "kpi_rmd": "Total RMD Amount",
         "kpi_roth": "Total Roth Reservoir",
         "kpi_total_outflow": "Total {sim_years}-Yr Outflow",
         "kpi_cap_outflow": "Total living expenses plus all federal taxes paid over {sim_years} years.",        
@@ -53,6 +54,7 @@ LANG_MAP = {
         "col_div": "INPUT: Taxable Div",
         "col_muni": "INPUT: Tax-Free Int",
         "col_cg": "INPUT: Cap Gains",
+        "col_rmd": "INPUT: RMDs",
         "col_outflow": "OUT: Total Outflow",
         "col_magi": "OUT: MAGI",
         "col_tax": "OUT: Fed Tax",
@@ -100,7 +102,10 @@ LANG_MAP = {
         "lab_pref_help": "0.0 focuses entirely on early retirement cash flow (Year 5). 1.0 focuses entirely on maximizing your final wealth (Year 15). 0.5 balances both equally.",
         "lab_pref_early": "Current Goal: Prioritizing **Early Retirement Liquidity**.",
         "lab_pref_late": "Current Goal: Prioritizing **Long-Term Legacy & Security**.",
-        "lab_pref_balanced": "Current Goal: **Balanced approach**."    },
+        "lab_pref_balanced": "Current Goal: **Balanced approach**.",
+        "lab_irmaa_label": "Max IRMAA Tier Allowed",
+        "lab_irmaa_help": "Limit the maximum Medicare IRMAA surcharge tier allowed in any simulation year. Tier 5 allows all tiers (no limit). Tier 0 restricts to no surcharge (Safe tier)."
+    },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
         "privacy_note": "🔒 隐私与数据安全提示：本程序完全在您的本地浏览器会话中运行。任何用户数据、资产数值或个人税务信息均不会被收集、追踪或存储在任何外部服务器上。您的财务信息将完全保持私密。",
@@ -125,6 +130,7 @@ LANG_MAP = {
         "kpi_init_nw": "初始净资产", 
         "kpi_nw": "平均预期净资产",
         "kpi_tax": "联邦税总支出",
+        "kpi_rmd": "最低强制提款(RMD)总额",
         "kpi_roth": "Roth 账户储备",
         "kpi_total_outflow": "{sim_years}年总支出",
         "kpi_cap_outflow": "{sim_years}年总生活支出与联邦税收之和",        
@@ -147,6 +153,7 @@ LANG_MAP = {
         "col_div": "应税股息",
         "col_muni": "免税利息(Muni)",
         "col_cg": "资本利得",
+        "col_rmd": "强制提款(RMD)",
         "col_outflow": "总支出(含税)",
         "col_magi": "MAGI(医保判定)",
         "col_tax": "联邦税支出",
@@ -191,10 +198,12 @@ LANG_MAP = {
         "lab_stop_optimum": "最佳停止 Roth 转换的年龄是",
         "lab_pref_h": "⚙️ 优化偏好设置",
         "lab_pref_label": "优化重点：早期流动性 vs. 长期传承",
-        "lab_pref_help": "0.0 表示完全侧重早期退休现金流（第5年）；1.0 表示完全侧重于最大化最终财富（第15年）；0.5 表示两者平衡。",
+        "lab_pref_help": "0.0 表示完全侧重早期退休现金流；1.0 表示完全侧重于最大化最终财富；0.5 表示两者平衡。",
         "lab_pref_early": "当前目标：优先考虑 **早期退休流动性**。",
         "lab_pref_late": "当前目标：优先考虑 **长期传承与财务安全**。",
-        "lab_pref_balanced": "当前目标：**平衡方案**。"    
+        "lab_pref_balanced": "当前目标：**平衡方案**。",
+        "lab_irmaa_label": "允许的最大 IRMAA 档位",
+        "lab_irmaa_help": "限制在任何模拟年份中允许的最大 Medicare IRMAA 附加费档位。档位 5 允许所有档位（无限制）。档位 0 限制为无附加费（安全档位）。"
     }
 }
 
@@ -205,7 +214,7 @@ with st.sidebar:
     
     st.header(t["sidebar_timeline"])
     retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
-    sim_years = st.slider("Simulation Horizon (Years)", 10, 40, value=int(st.session_state.get("sim_years", 15)))
+    sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 20)))
     h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=int(st.session_state.get("h_age_at_retire", 64)))
     w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=int(st.session_state.get("w_age_at_retire", 64)))
 
@@ -318,20 +327,31 @@ def get_survival_prob(age):
 
 # --- 4. CALCULATION ENGINE ---
 @st.cache_data
-def get_optimal_conversion(_core_args, _lab_horizon, _legacy_weight):
-    mid_weight = 1.0 - _legacy_weight
-    total_ira_init = _core_args["ira_h_init"] + _core_args["ira_w_init"]
-    upper_bound = max(10000, min(200000, int((total_ira_init // 10000 + 1) * 10000)))
+def get_optimal_conversion(core_args, lab_horizon, legacy_weight, max_irmaa_limit=5):
+    mid_weight = 1.0 - legacy_weight
+    total_ira_init = core_args["ira_h_init"] + core_args["ira_w_init"]
+    
+    # Dynamically scale upper bound based on IRA size
+    upper_bound = min(500000, max(200000, int((total_ira_init * 0.1) // 10000 * 10000)))
+    upper_bound = min(upper_bound, total_ira_init)
+    upper_bound = max(10000, int(upper_bound // 10000 * 10000))
+    
     test_amounts = list(range(0, upper_bound + 1, 10000))
     
-    best_score = -1
+    best_score = -1e18
     best_amt = 0
-    mid_idx = int(_lab_horizon * 0.33)
-    end_idx = int(_lab_horizon * 0.95)
+    mid_idx = int(lab_horizon * 0.33)
+    end_idx = int(lab_horizon * 0.95)
     
     for amt in test_amounts:
-        df_sim = calculate_roadmap(**_core_args, conv_override=amt, horizon_override=_lab_horizon)
-        score = (df_sim.iloc[mid_idx]['Expected Net Worth'] * mid_weight) + (df_sim.iloc[end_idx]['Expected Net Worth'] * _legacy_weight)
+        df_sim = calculate_roadmap(**core_args, conv_override=amt, horizon_override=lab_horizon)
+        score = (df_sim.iloc[mid_idx]['Expected Net Worth'] * mid_weight) + (df_sim.iloc[end_idx]['Expected Net Worth'] * legacy_weight)
+        
+        # Apply IRMAA constraint penalty
+        max_tier_reached = df_sim['irmaa_tier'].max()
+        penalty = 1e15 * max(0, max_tier_reached - max_irmaa_limit)
+        score -= penalty
+        
         if score > best_score:
             best_score = score
             best_amt = amt
@@ -487,12 +507,21 @@ def calculate_roadmap(
         from_roth = min(cur_roth, shortfall)
         cur_roth -= from_roth
 
+        # Save surplus cash to the Brokerage account
+        surplus = max(0, available_cash - target_expense)
+        cur_brokerage += surplus
+
+        # Deduct RMDs and other withdrawals from the Traditional IRA
         ira_total = cur_ira_h + cur_ira_w
+        amt_to_deduct = total_rmd + ira_withdrawn + active_conversion
+        if amt_to_deduct > ira_total:
+            amt_to_deduct = ira_total
+            
         if ira_total > 0:
             h_ratio = cur_ira_h / ira_total
             w_ratio = cur_ira_w / ira_total
-            cur_ira_h -= h_ratio * (ira_withdrawn + active_conversion)
-            cur_ira_w -= w_ratio * (ira_withdrawn + active_conversion)
+            cur_ira_h -= h_ratio * amt_to_deduct
+            cur_ira_w -= w_ratio * amt_to_deduct
         
         cur_ira_h = max(0, cur_ira_h) * (1 + ira_growth)
         cur_ira_w = max(0, cur_ira_w) * (1 + ira_growth)
@@ -505,11 +534,12 @@ def calculate_roadmap(
         rows.append({
             "Year": year, "Ages": f"{age_h}/{age_w}", "INPUT: SS": total_ss, 
             "raw_div": taxable_div_in, "raw_muni": muni_int_in, "raw_cg": sim_annual_ltcg,
-            "LEVER: Roth": active_conversion, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
+            "LEVER: Roth": active_conversion, "INPUT: RMDs": total_rmd, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "raw_outflow": target_expense, "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, 
             "Brokerage": cur_brokerage, "Total Net Worth": total_nw,
             "Expected Net Worth": total_nw * joint_survival,
             "IRMAA": "✅ Safe" if irmaa_tier == 0 else f"🚩 Tier {irmaa_tier}",
+            "irmaa_tier": irmaa_tier,
             "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
         })
     return pd.DataFrame(rows)
@@ -528,9 +558,10 @@ core_args = {
     "lang": lang
 }
 
-lab_horizon = max(15, sim_years)
+lab_horizon = max(20, sim_years)
 legacy_weight_val = st.session_state.get("lab_legacy_weight", 0.80)
-best_amt_for_calc = get_optimal_conversion(core_args, lab_horizon, legacy_weight_val)
+max_irmaa_limit_val = st.session_state.get("lab_max_irmaa", 5)
+best_amt_for_calc = get_optimal_conversion(core_args, lab_horizon, legacy_weight_val, max_irmaa_limit_val)
 st.session_state['best_amt'] = best_amt_for_calc
 
 tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
@@ -602,25 +633,26 @@ with tab_roadmap:
 
     # --- ACTIVE STRATEGY DETAILS ---
     st.subheader(t["kpi_h"].format(sim_years=sim_years))
-    k0, k1, k2, k3, k4 = st.columns(5)
+    k0, k1, k2, k3, k4, k5 = st.columns(6)
     k0.metric(t["kpi_init_nw"], f"${(ira_h_init + ira_w_init + roth_init + brokerage_init):,.0f}")
     # Display the Expected Net Worth Metric instead of raw Total Net Worth
     k1.metric(t["kpi_nw"], f"${df_active['Expected Net Worth'].mean():,.0f}") 
     k2.metric(t["kpi_total_outflow"].format(sim_years=sim_years), f"${df_active['raw_outflow'].sum():,.0f}")
     k3.metric(t["kpi_tax"], f"${df_active['OUT: Fed Tax'].sum():,.0f}")
-    k4.metric(t["kpi_roth"], f"${df_active.iloc[-1]['Roth Bal']:,.0f}")
+    k4.metric(t["kpi_rmd"], f"${df_active['INPUT: RMDs'].sum():,.0f}")
+    k5.metric(t["kpi_roth"], f"${df_active.iloc[-1]['Roth Bal']:,.0f}")
     st.divider()
     st.subheader(f"{t['roadmap_h']} {retire_year}")
     
     col_map = {
         "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"], 
-        "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "OUT: MAGI": t["col_magi"], 
+        "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "INPUT: RMDs": t["col_rmd"], "OUT: MAGI": t["col_magi"], 
         "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"], 
         "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
         "🚨 Important Events": t["col_events"]
     }
     
-    st.table(df_active[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
+    st.table(df_active[['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']].rename(columns=col_map).style.format({t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}))
 
     # Summary Table
     st.divider()
@@ -645,34 +677,41 @@ with tab_roadmap:
     st.table(df_final_sum_renamed.style.format({t["sum_init"]: "${:,.0f}", t["sum_final"]: "${:,.0f}", yield_col: "${:,.0f}", tax_col: "${:,.0f}"}))
 
 with tab_lab:
-    # 1. Enforce a minimum of 15 years for the Strategy Lab to allow the algorithm sufficient runway,
+    # 1. Enforce a minimum of 20 years for the Strategy Lab to allow the algorithm sufficient runway,
     # otherwise follow the user's simulation horizon.
     st.subheader(t["lab_pref_h"])
-    legacy_weight = st.slider(
-        t["lab_pref_label"],
-        min_value=0.0, 
-        max_value=1.0, 
-        value=0.80, 
-        step=0.05,
-        help=t["lab_pref_help"],
-        key="lab_legacy_weight"
-    )
+    col_pref1, col_pref2 = st.columns(2)
+    with col_pref1:
+        legacy_weight = st.slider(
+            t["lab_pref_label"],
+            min_value=0.0, 
+            max_value=1.0, 
+            value=0.80, 
+            step=0.05,
+            help=t["lab_pref_help"],
+            key="lab_legacy_weight"
+        )
+    with col_pref2:
+        max_irmaa_limit = st.slider(
+            t["lab_irmaa_label"],
+            min_value=0,
+            max_value=5,
+            value=5,
+            step=1,
+            help=t["lab_irmaa_help"],
+            key="lab_max_irmaa"
+        )
     mid_weight = 1.0 - legacy_weight
-    
-    if legacy_weight < 0.3:
-        st.caption(t["lab_pref_early"])
-    elif legacy_weight > 0.7:
-        st.caption(t["lab_pref_late"])
-    else:
-        st.caption(t["lab_pref_balanced"])    
     st.divider()
     
-    st.subheader(t["lab_roth_h"])
-    st.write(t["lab_roth_desc"].format(lab_horizon=lab_horizon))
+    st.subheader(t["lab_roth_h"], help=t["lab_roth_desc"].format(lab_horizon=lab_horizon))
     
     total_ira_init = ira_h_init + ira_w_init
-    lab_upper_bound = min(200000, int((total_ira_init // 10000 + 1) * 10000))
-    lab_upper_bound = max(10000, lab_upper_bound) 
+    # Dynamically scale upper bound based on IRA size
+    lab_upper_bound = min(500000, max(200000, int((total_ira_init * 0.1) // 10000 * 10000)))
+    lab_upper_bound = min(lab_upper_bound, total_ira_init)
+    lab_upper_bound = max(10000, int(lab_upper_bound // 10000 * 10000))
+    
     test_amounts = list(range(0, lab_upper_bound + 1, 10000))
     lab_results = []
     
@@ -687,24 +726,44 @@ with tab_lab:
             end_nw = res_df_sim.iloc[end_idx]['Expected Net Worth']
             weighted_score = (mid_nw * mid_weight) + (end_nw * legacy_weight)
             
+            max_tier_reached = res_df_sim['irmaa_tier'].max()
+            penalty = 1e15 * max(0, max_tier_reached - max_irmaa_limit)
+            score = weighted_score - penalty
+            
             lab_results.append({
                 "amt": amt,
-                "ex_nw": weighted_score, # Used for charting
+                "ex_nw": score,
+                "raw_nw": weighted_score,
                 "mid_nw": mid_nw,
-                "end_nw": end_nw
+                "end_nw": end_nw,
+                "max_irmaa": max_tier_reached
             })
     
     res_df = pd.DataFrame(lab_results)
     best_amt = res_df.loc[res_df["ex_nw"].idxmax(), "amt"]
     best_row = res_df.loc[res_df["ex_nw"].idxmax()]
     
-    # Chart 1: Roth Conversion
-    chart1 = alt.Chart(res_df).mark_line(point=True, color='#2ecc71', strokeWidth=3).encode(
+    # Chart 1: Roth Conversion with continuous line + colored points
+    line = alt.Chart(res_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-        y=alt.Y('ex_nw:Q', title="Weighted Optimization Score", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Expected Net Worth Score", scale=alt.Scale(zero=False))
+    )
+    points = alt.Chart(res_df).mark_point(size=60, filled=True).encode(
+        x=alt.X('amt:Q'),
+        y=alt.Y('raw_nw:Q'),
+        color=alt.condition(
+            f"datum.max_irmaa <= {max_irmaa_limit}",
+            alt.value('#2ecc71'),  # Green if within limit
+            alt.value('#e74c3c')   # Red if violating
+        ),
+        tooltip=[
+            alt.Tooltip('amt:Q', title=t["lab_roth_chart_x"]),
+            alt.Tooltip('raw_nw:Q', title="Expected Net Worth", format="$,.0f"),
+            alt.Tooltip('max_irmaa:N', title="Max IRMAA Tier")
+        ]
     )
     rule1 = alt.Chart(pd.DataFrame({'amt': [best_amt]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='amt:Q')
-    st.altair_chart(chart1 + rule1, width='stretch')
+    st.altair_chart(line + points + rule1, width='stretch')
     st.success(f"💡 **{t['lab_roth_optimum']} ${best_amt:,.0f}**")
     
     c1, c2 = st.columns(2)
@@ -714,8 +773,7 @@ with tab_lab:
     st.divider()
 
     # Chart 2: Stop Age Optimizer
-    st.subheader(t["lab_stop_h"])
-    st.write(t["lab_stop_desc"].format(best_amt=best_amt))
+    st.subheader(t["lab_stop_h"], help=t["lab_stop_desc"].format(best_amt=best_amt))
     
     # We maintain a sensible range for age optimization regardless of horizon
     test_ages = list(range(65, 95))
@@ -729,20 +787,40 @@ with tab_lab:
             end_nw = res_age_df.iloc[end_idx]['Expected Net Worth']
             weighted_score = (mid_nw * 0.2) + (end_nw * 0.8)
             
+            max_tier_reached = res_age_df['irmaa_tier'].max()
+            penalty = 1e15 * max(0, max_tier_reached - max_irmaa_limit)
+            score = weighted_score - penalty
+            
             age_results.append({
                 "age": age,
-                "ex_nw": weighted_score
+                "ex_nw": score,
+                "raw_nw": weighted_score,
+                "max_irmaa": max_tier_reached
             })
             
     res_age_df = pd.DataFrame(age_results)
     best_age = res_age_df.loc[res_age_df["ex_nw"].idxmax(), "age"]
     
-    chart2 = alt.Chart(res_age_df).mark_line(point=True, color='#3498db', strokeWidth=3).encode(
+    line2 = alt.Chart(res_age_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('age:Q', title=t["lab_stop_chart_x"], scale=alt.Scale(zero=False)),
-        y=alt.Y('ex_nw:Q', title="Weighted Optimization Score", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Expected Net Worth Score", scale=alt.Scale(zero=False))
+    )
+    points2 = alt.Chart(res_age_df).mark_point(size=60, filled=True).encode(
+        x=alt.X('age:Q'),
+        y=alt.Y('raw_nw:Q'),
+        color=alt.condition(
+            f"datum.max_irmaa <= {max_irmaa_limit}",
+            alt.value('#3498db'),  # Blue if within limit
+            alt.value('#e74c3c')   # Red if violating
+        ),
+        tooltip=[
+            alt.Tooltip('age:Q', title=t["lab_stop_chart_x"]),
+            alt.Tooltip('raw_nw:Q', title="Expected Net Worth", format="$,.0f"),
+            alt.Tooltip('max_irmaa:N', title="Max IRMAA Tier")
+        ]
     )
     rule2 = alt.Chart(pd.DataFrame({'age': [best_age]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='age:Q')
-    st.altair_chart(chart2 + rule2, width='stretch')
+    st.altair_chart(line2 + points2 + rule2, width='stretch')
     st.warning(f"🛑 **{t['lab_stop_optimum']} {best_age}**")
 
 with tab_data:
@@ -773,7 +851,9 @@ with tab_data:
         "ira_growth_raw": ira_growth_raw,
         "roth_growth_raw": roth_growth_raw,
         "broker_growth_raw": broker_growth_raw,
-        "inflation_rate_raw": inflation_rate_raw
+        "inflation_rate_raw": inflation_rate_raw,
+        "lab_legacy_weight": legacy_weight_val,
+        "lab_max_irmaa": max_irmaa_limit_val
     }
     
     json_string = json.dumps(current_profile, indent=4)
