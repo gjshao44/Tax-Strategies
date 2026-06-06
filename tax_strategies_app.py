@@ -86,7 +86,8 @@ LANG_MAP = {
         "kpi_strategy": "Strategy",
         "kpi_optimum": "Optimum",
         "tab_roadmap": "📈 Detailed Roadmap",
-        "tab_lab": "🔬 Strategy Lab",
+        "tab_withdrawal": "💸 Withdrawal Strategies",
+        "tab_lab": "🔬 Roth Conversion Optimizer",
         "tab_data": "💾 Data Management",
         "lab_roth_h": "Roth Conversion Sensitivity Analysis",
         "lab_roth_desc": "Tests how much to convert from IRA to Roth each year. The peak of the curve is the sweet spot — pay manageable taxes now to avoid larger forced withdrawals later. ({lab_horizon}-year horizon, survival-weighted.)",
@@ -104,7 +105,15 @@ LANG_MAP = {
         "lab_pref_late": "Current Goal: Prioritizing **Long-Term Legacy & Security**.",
         "lab_pref_balanced": "Current Goal: **Balanced approach**.",
         "lab_irmaa_label": "Max Medicare Surcharge Allowed",
-        "lab_irmaa_help": "Limits how much extra Medicare premium you're willing to pay. 0 = no extra cost. Higher = allows more aggressive conversions that trigger surcharges."
+        "lab_irmaa_help": "Limits how much extra Medicare premium you're willing to pay. 0 = no extra cost. Higher = allows more aggressive conversions that trigger surcharges.",
+        "withdrawal_label": "Withdrawal Strategy",
+        "withdrawal_help": "Controls the order in which accounts are tapped when cash flow doesn't cover expenses.",
+        "ws_tax_efficient": "Tax-Efficient (Brokerage → IRA → Roth)",
+        "ws_ira_first": "IRA-First (IRA → Brokerage → Roth)",
+        "ws_roth_first": "Roth-First (Roth → Brokerage → IRA)",
+        "ws_proportional": "Proportional Drawdown",
+        "withdrawal_chart_h": "Withdrawal Strategy Comparison",
+        "withdrawal_chart_desc": "Expected Net Worth trajectory under each withdrawal strategy over {sim_years} years."
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -185,7 +194,8 @@ LANG_MAP = {
         "kpi_strategy": "优化策略",
         "kpi_optimum": "最优方案",
         "tab_roadmap": "📈 详细路线图",
-        "tab_lab": "🔬 策略实验室",
+        "tab_withdrawal": "💸 提款策略对比",
+        "tab_lab": "🔬 Roth转换优化器",
         "tab_data": "💾 数据管理",
         "lab_roth_h": "Roth 转换敏感性分析",
         "lab_roth_desc": "测试每年从 IRA 转入 Roth 的最佳金额。曲线峰值即最优解——现在交适量的税，避免未来更大的强制提款税负。（{lab_horizon}年周期，生存加权。）",
@@ -203,7 +213,15 @@ LANG_MAP = {
         "lab_pref_late": "当前目标：优先考虑 **长期传承与财务安全**。",
         "lab_pref_balanced": "当前目标：**平衡方案**。",
         "lab_irmaa_label": "允许的最大 Medicare 附加费",
-        "lab_irmaa_help": "限制您愿意承受的额外 Medicare 保费。0 = 无额外费用。越高 = 允许更激进的转换（会触发附加费）。"
+        "lab_irmaa_help": "限制您愿意承受的额外 Medicare 保费。0 = 无额外费用。越高 = 允许更激进的转换（会触发附加费）。",
+        "withdrawal_label": "提款策略",
+        "withdrawal_help": "控制当现金流不足以覆盖支出时，从哪些账户按什么顺序提款。",
+        "ws_tax_efficient": "税务优先 (经纪→IRA→Roth)",
+        "ws_ira_first": "IRA优先 (IRA→经纪→Roth)",
+        "ws_roth_first": "Roth优先 (Roth→经纪→IRA)",
+        "ws_proportional": "按比例 (各账户等比提取)",
+        "withdrawal_chart_h": "提款策略对比",
+        "withdrawal_chart_desc": "{sim_years}年各提款策略下的预期净资产走势。"
     }
 }
 
@@ -223,6 +241,13 @@ with st.sidebar:
 
     st.header(t["sidebar_cash"])
     annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
+    ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
+    ws_keys = list(ws_map.keys())
+    ws_labels = list(ws_map.values())
+    saved_ws = st.session_state.get("withdrawal_strategy", "tax_efficient")
+    ws_idx = ws_keys.index(saved_ws) if saved_ws in ws_keys else 0
+    ws_selected_label = st.selectbox(t["withdrawal_label"], ws_labels, index=ws_idx, help=t["withdrawal_help"])
+    withdrawal_strategy = ws_keys[ws_labels.index(ws_selected_label)]
     qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
     qd_perc = qd_perc_raw / 100
     taxable_div_in = st.number_input("Annual Taxable Dividends", value=int(st.session_state.get("taxable_div_in", 33000)))
@@ -382,8 +407,8 @@ def calculate_roadmap(
     taxable_div_in, muni_int_in, last_salary,
     ss_h_monthly, ss_h_start, ss_w_monthly, ss_w_start,
     ira_growth, roth_growth, broker_growth, inflation_rate,
-    lang,
-    conv_override=None, ltcg_override=None, horizon_override=None, 
+    lang, withdrawal_strategy="tax_efficient",
+    conv_override=None, ltcg_override=None, horizon_override=None,
     ss_start_h=None, ss_start_w=None, conv_stop_age_override=None
 ):
     t_internal = LANG_MAP[lang]
@@ -491,38 +516,85 @@ def calculate_roadmap(
             ev.append(t_internal["event_oom"])
             oom_triggered = True
 
-        from_broker = min(cur_brokerage, shortfall)
-        cur_brokerage -= from_broker
-        shortfall -= from_broker
-        
+        from_broker = 0
         ira_withdrawn = 0
-        if shortfall > 0 and (cur_ira_h + cur_ira_w) > 0:
-            gross_needed = shortfall
+        from_roth = 0
+
+        def _withdraw_ira(need):
+            nonlocal ord_taxable, magi, fed_tax, irmaa_tier, irmaa_surcharge, target_expense
+            if need <= 0 or (cur_ira_h + cur_ira_w) <= 0:
+                return 0
+            gross_needed = need
             for _ in range(5):
                 test_ord = ord_taxable + gross_needed
                 test_magi = magi + gross_needed
-                
                 test_fed_tax = calculate_comprehensive_tax(test_ord, qd_ltcg_total, test_magi, inf_factor, taxable_ss, tax_status, i)
                 _, test_irmaa_sur = get_irmaa_surcharge(test_magi, inf_factor, num_spouses_medicare)
-                
                 extra_tax = test_fed_tax - fed_tax
                 extra_irmaa = test_irmaa_sur - irmaa_surcharge
-                gross_needed = shortfall + extra_tax + extra_irmaa
-                
+                gross_needed = need + extra_tax + extra_irmaa
                 if gross_needed >= (cur_ira_h + cur_ira_w):
                     gross_needed = cur_ira_h + cur_ira_w
                     break
-                    
-            ira_withdrawn = gross_needed
-            ord_taxable += ira_withdrawn
-            magi += ira_withdrawn
+            ord_taxable += gross_needed
+            magi += gross_needed
             fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status, i)
             irmaa_tier, irmaa_surcharge = get_irmaa_surcharge(magi, inf_factor, num_spouses_medicare)
             target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge
-            shortfall = max(0, target_expense - available_cash - from_broker - ira_withdrawn)
+            return gross_needed
 
-        from_roth = min(cur_roth, shortfall)
-        cur_roth -= from_roth
+        if withdrawal_strategy == "tax_efficient":
+            from_broker = min(cur_brokerage, shortfall)
+            cur_brokerage -= from_broker
+            shortfall -= from_broker
+            if shortfall > 0:
+                ira_withdrawn = _withdraw_ira(shortfall)
+                shortfall = max(0, target_expense - available_cash - from_broker - ira_withdrawn)
+            from_roth = min(cur_roth, shortfall)
+            cur_roth -= from_roth
+
+        elif withdrawal_strategy == "ira_first":
+            ira_withdrawn = _withdraw_ira(shortfall)
+            shortfall = max(0, target_expense - available_cash - ira_withdrawn)
+            from_broker = min(cur_brokerage, shortfall)
+            cur_brokerage -= from_broker
+            shortfall -= from_broker
+            from_roth = min(cur_roth, shortfall)
+            cur_roth -= from_roth
+
+        elif withdrawal_strategy == "roth_first":
+            from_roth = min(cur_roth, shortfall)
+            cur_roth -= from_roth
+            shortfall -= from_roth
+            from_broker = min(cur_brokerage, shortfall)
+            cur_brokerage -= from_broker
+            shortfall -= from_broker
+            if shortfall > 0:
+                ira_withdrawn = _withdraw_ira(shortfall)
+
+        elif withdrawal_strategy == "proportional":
+            total_avail = cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth
+            if total_avail > 0 and shortfall > 0:
+                broker_frac = cur_brokerage / total_avail
+                ira_frac = (cur_ira_h + cur_ira_w) / total_avail
+                roth_frac = cur_roth / total_avail
+                from_broker = min(cur_brokerage, shortfall * broker_frac)
+                cur_brokerage -= from_broker
+                from_roth = min(cur_roth, shortfall * roth_frac)
+                cur_roth -= from_roth
+                ira_need = shortfall * ira_frac
+                if ira_need > 0:
+                    ira_withdrawn = _withdraw_ira(ira_need)
+                # Mop up any remaining shortfall from tax increase on IRA portion
+                remaining = max(0, target_expense - available_cash - from_broker - ira_withdrawn - from_roth)
+                if remaining > 0:
+                    extra_b = min(cur_brokerage, remaining)
+                    cur_brokerage -= extra_b
+                    from_broker += extra_b
+                    remaining -= extra_b
+                    extra_r = min(cur_roth, remaining)
+                    cur_roth -= extra_r
+                    from_roth += extra_r
 
         # Save surplus cash to the Brokerage account
         surplus = max(0, available_cash - target_expense)
@@ -572,7 +644,7 @@ core_args = {
     "taxable_div_in": taxable_div_in, "muni_int_in": muni_int_in, "last_salary": last_salary,
     "ss_h_monthly": ss_h_monthly, "ss_h_start": ss_h_start, "ss_w_monthly": ss_w_monthly, "ss_w_start": ss_w_start,
     "ira_growth": ira_growth, "roth_growth": roth_growth, "broker_growth": broker_growth, "inflation_rate": inflation_rate,
-    "lang": lang
+    "lang": lang, "withdrawal_strategy": withdrawal_strategy
 }
 
 lab_horizon = max(20, sim_years)
@@ -581,7 +653,7 @@ max_irmaa_limit_val = st.session_state.get("lab_max_irmaa", 5)
 best_amt_for_calc = get_optimal_conversion(core_args, lab_horizon, legacy_weight_val, max_irmaa_limit_val)
 st.session_state['best_amt'] = best_amt_for_calc
 
-tab_roadmap, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_lab"], t["tab_data"]])
+tab_roadmap, tab_withdrawal, tab_lab, tab_data = st.tabs([t["tab_roadmap"], t["tab_withdrawal"], t["tab_lab"], t["tab_data"]])
 
 with tab_roadmap:
     with st.expander("📖 " + t["motivation_h"] + " & " + t["meth_h"], expanded=False):
@@ -704,6 +776,25 @@ with tab_roadmap:
             fmt = {t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
 
         st.table(df_active[display_cols].rename(columns=col_map).style.format(fmt))
+
+with tab_withdrawal:
+    st.subheader(t["withdrawal_chart_h"])
+    st.caption(t["withdrawal_chart_desc"].format(sim_years=sim_years))
+    ws_chart_keys = ["tax_efficient", "ira_first", "roth_first", "proportional"]
+    ws_chart_display = [t["ws_tax_efficient"], t["ws_ira_first"], t["ws_roth_first"], t["ws_proportional"]]
+    ws_chart_data = []
+    for ws_key, ws_name in zip(ws_chart_keys, ws_chart_display):
+        df_ws = calculate_roadmap(**{**core_args, "withdrawal_strategy": ws_key})
+        for _, row in df_ws.iterrows():
+            ws_chart_data.append({"Year": row["Year"], "Expected Net Worth": row["Expected Net Worth"], "Strategy": ws_name})
+    df_ws_chart = pd.DataFrame(ws_chart_data)
+    ws_chart = alt.Chart(df_ws_chart).mark_line(strokeWidth=2.5).encode(
+        x=alt.X('Year:Q', title="Year"),
+        y=alt.Y('Expected Net Worth:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
+        color=alt.Color('Strategy:N', legend=alt.Legend(title="Withdrawal Strategy")),
+        tooltip=[alt.Tooltip('Year:Q'), alt.Tooltip('Expected Net Worth:Q', format='$,.0f'), alt.Tooltip('Strategy:N')]
+    )
+    st.altair_chart(ws_chart, use_container_width=True)
 
 with tab_lab:
     # 1. Enforce a minimum of 20 years for the Strategy Lab to allow the algorithm sufficient runway,
