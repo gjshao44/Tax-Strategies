@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import numpy as np
 import json
 
 st.set_page_config(page_title="Comprehensive Retirement Wealth & Tax Optimizer", layout="wide")
@@ -27,7 +28,7 @@ LANG_MAP = {
 * **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
 * **Observe Expected Net Worth:** Watch the comparison and roadmap to see how paying taxes early preserves long-term survival-weighted capital.
 """,
-        "kpi_h": "🚀 {sim_years}-Year Strategy vs. Baseline",
+        "kpi_h": "🚀 {sim_years}-Year Roth Optimization vs. Idle",
         "kpi_init_nw": "Initial Net Worth",
         "kpi_nw": "Weighted Expected NW",
         "kpi_tax": "Total Federal Tax Paid",
@@ -77,16 +78,16 @@ LANG_MAP = {
         "sum_liability": "Total {sim_years}-Yr Tax Liability",
         "total_label": "**TOTAL ASSETS**",
         "comp_header": "⚖️ Strategy vs. Baseline Comparison ({sim_years}-Year Summary)",
-        "comp_desc": "Compares your active and optimal strategies against baseline (zero Roth conversions or capital gains harvesting)  over {sim_years} years. Success is measured by maximizing survival-weighted Expected Net Worth.",
+        "comp_desc": "Compares your active and optimal Roth strategies against idle (zero Roth conversions, no capital gains harvesting) over {sim_years} years. Success is measured by maximizing survival-weighted Expected Net Worth.",
         "kpi_nw_gain": "Expected Net Worth Gain (Mean)",
         "kpi_tax_saved": "Cumulative Taxes Saved",
         "kpi_tax_extra": "Upfront Tax Cost",
         "kpi_roth_boost": "Final Roth Reservoir Boost",
-        "kpi_baseline": "Baseline",
+        "kpi_baseline": "Idle",
         "kpi_strategy": "Strategy",
         "kpi_optimum": "Optimum",
         "tab_roadmap": "📈 Detailed Roadmap",
-        "tab_withdrawal": "💸 Withdrawal Strategies",
+        "tab_withdrawal": "🔍 What-If Analysis",
         "tab_lab": "🔬 Roth Conversion Optimizer",
         "tab_data": "💾 Data Management",
         "lab_roth_h": "Roth Conversion Sensitivity Analysis",
@@ -113,7 +114,16 @@ LANG_MAP = {
         "ws_roth_first": "Roth-First (Roth → Brokerage → IRA)",
         "ws_proportional": "Proportional Drawdown",
         "withdrawal_chart_h": "Withdrawal Strategy Comparison",
-        "withdrawal_chart_desc": "Expected Net Worth trajectory under each withdrawal strategy over {sim_years} years."
+        "withdrawal_chart_desc": "Expected Net Worth trajectory under each withdrawal strategy over {sim_years} years.",
+        "growth_profile_label": "Growth Profile",
+        "growth_profile_help": "Shifts all account growth rates up or down together to model different market environments. Your base rates (set in Growth section) serve as the 'Moderate' baseline.",
+        "gp_ultra_conservative": "Ultra-Conservative (-4%)",
+        "gp_conservative": "Conservative (-2%)",
+        "gp_moderate": "Moderate (your settings)",
+        "gp_aggressive": "Aggressive (+2%)",
+        "growth_profile_caption": "Growth shift: {shift:+.0f}% → IRA: {ira:.1f}% | Roth: {roth:.1f}% | Brokerage: {broker:.1f}%",
+        "growth_chart_h": "Growth Profile Monte Carlo (100 simulations per profile)",
+        "growth_chart_desc": "Solid lines show median outcome; shaded bands show 10th–90th percentile range. Annual returns drawn from Normal(mean, σ) per profile over {sim_years} years."
     },
     "Chinese": {
         "title": "🛡️ 综合退休财富与税务优化工具",
@@ -135,7 +145,7 @@ LANG_MAP = {
 * **探索策略实验室:** 导航到“策略实验室”选项卡，运行自动化敏感性分析，找出数学上最优的年度 Roth 转换金额和时间窗口。
 * **观察预期净资产 (Expected Net Worth):** 关注路线图和对比，观察通过早期纳税如何保护长期的生存加权资本。
 """,
-        "kpi_h": "🚀 {sim_years}年策略 vs. 基准对比",
+        "kpi_h": "🚀 {sim_years}年 Roth优化 vs. 无操作",
         "kpi_init_nw": "初始净资产", 
         "kpi_nw": "加权预期净资产",
         "kpi_tax": "联邦税总支出",
@@ -185,16 +195,16 @@ LANG_MAP = {
         "sum_liability": "{sim_years}年总税务责任",
         "total_label": "**资产总计**",
         "comp_header": "⚖️ 优化策略 vs. 基准对比 ({sim_years}年累计)",
-        "comp_desc": "在{sim_years}年周期内，将您的主动策略与最佳路径，同基准线（零罗斯转换或资本利得变现）进行对比。成功标准为最大化生存加权预期净值。",
+        "comp_desc": "在{sim_years}年周期内，将您的主动策略与最佳路径，同不操作方案（零Roth转换、零资本利得变现）进行对比。成功标准为最大化生存加权预期净值。",
         "kpi_nw_gain": "预期净资产提升 (平均)",
         "kpi_tax_saved": "累计节省税款",
         "kpi_tax_extra": "前期税务成本",
         "kpi_roth_boost": "免税 Roth 账户增幅",
-        "kpi_baseline": "基准方案",
+        "kpi_baseline": "无操作",
         "kpi_strategy": "优化策略",
         "kpi_optimum": "最优方案",
         "tab_roadmap": "📈 详细路线图",
-        "tab_withdrawal": "💸 提款策略对比",
+        "tab_withdrawal": "🔍 假设分析",
         "tab_lab": "🔬 Roth转换优化器",
         "tab_data": "💾 数据管理",
         "lab_roth_h": "Roth 转换敏感性分析",
@@ -221,8 +231,24 @@ LANG_MAP = {
         "ws_roth_first": "Roth优先 (Roth→经纪→IRA)",
         "ws_proportional": "按比例 (各账户等比提取)",
         "withdrawal_chart_h": "提款策略对比",
-        "withdrawal_chart_desc": "{sim_years}年各提款策略下的预期净资产走势。"
+        "withdrawal_chart_desc": "{sim_years}年各提款策略下的预期净资产走势。",
+        "growth_profile_label": "增长预期",
+        "growth_profile_help": "统一上下调整所有账户增长率，模拟不同市场环境。您在增长设置中的基础利率为'适中'基准。",
+        "gp_ultra_conservative": "极保守 (-4%)",
+        "gp_conservative": "保守 (-2%)",
+        "gp_moderate": "适中 (当前设置)",
+        "gp_aggressive": "积极 (+2%)",
+        "growth_profile_caption": "增长调整: {shift:+.0f}% → IRA: {ira:.1f}% | Roth: {roth:.1f}% | 经纪: {broker:.1f}%",
+        "growth_chart_h": "增长预期蒙特卡洛模拟 (每组100次)",
+        "growth_chart_desc": "实线为中位数结果；阴影区域为10-90百分位范围。年回报按正态分布(均值, σ)随机抽样，模拟{sim_years}年。"
     }
+}
+
+GROWTH_PROFILE_PARAMS = {
+    "ultra_conservative": {"shift": -4.0, "stddev": 3.0},
+    "conservative": {"shift": -2.0, "stddev": 6.0},
+    "moderate": {"shift": 0.0, "stddev": 10.0},
+    "aggressive": {"shift": 2.0, "stddev": 14.0},
 }
 
 # --- 2. SIDEBAR INPUTS ---
@@ -238,9 +264,6 @@ with st.sidebar:
     sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 20)))
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, value=int(st.session_state.get("roth_conv", 40000)), step=5000)
     annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, value=int(st.session_state.get("annual_ltcg", 20000)), step=10000)
-
-    st.header(t["sidebar_cash"])
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
     ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
     ws_keys = list(ws_map.keys())
     ws_labels = list(ws_map.values())
@@ -248,6 +271,16 @@ with st.sidebar:
     ws_idx = ws_keys.index(saved_ws) if saved_ws in ws_keys else 0
     ws_selected_label = st.selectbox(t["withdrawal_label"], ws_labels, index=ws_idx, help=t["withdrawal_help"])
     withdrawal_strategy = ws_keys[ws_labels.index(ws_selected_label)]
+    gp_map = {"ultra_conservative": t["gp_ultra_conservative"], "conservative": t["gp_conservative"], "moderate": t["gp_moderate"], "aggressive": t["gp_aggressive"]}
+    gp_keys = list(gp_map.keys())
+    gp_labels = list(gp_map.values())
+    saved_gp = st.session_state.get("growth_profile", "moderate")
+    gp_idx = gp_keys.index(saved_gp) if saved_gp in gp_keys else 2
+    gp_selected_label = st.selectbox(t["growth_profile_label"], gp_labels, index=gp_idx, help=t["growth_profile_help"])
+    growth_profile = gp_keys[gp_labels.index(gp_selected_label)]
+
+    st.header(t["sidebar_cash"])
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
     qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
     qd_perc = qd_perc_raw / 100
     taxable_div_in = st.number_input("Annual Taxable Dividends", value=int(st.session_state.get("taxable_div_in", 33000)))
@@ -273,13 +306,17 @@ with st.sidebar:
 
     with st.expander(t["sidebar_growth"], expanded=False):
         ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
-        ira_growth = ira_growth_raw / 100
         roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("roth_growth_raw", 5.0)))
-        roth_growth = roth_growth_raw / 100
         broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("broker_growth_raw", 3.0)))
-        broker_growth = broker_growth_raw / 100
         inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
         inflation_rate = inflation_rate_raw / 100
+
+    gp_shift = GROWTH_PROFILE_PARAMS[growth_profile]["shift"]
+    ira_growth = max(0.5, ira_growth_raw + gp_shift) / 100
+    roth_growth = max(0.5, roth_growth_raw + gp_shift) / 100
+    broker_growth = max(0.5, broker_growth_raw + gp_shift) / 100
+    if gp_shift != 0:
+        st.caption(t["growth_profile_caption"].format(shift=gp_shift, ira=ira_growth*100, roth=roth_growth*100, broker=broker_growth*100))
 
     st.sidebar.markdown("<br>" * 10, unsafe_allow_html=True)
     st.sidebar.markdown("---")
@@ -400,6 +437,33 @@ def get_optimal_conversion(core_args, lab_horizon, legacy_weight, max_irmaa_limi
     return best_amt
 
 @st.cache_data
+def run_monte_carlo(core_args, profile_key, ira_growth_raw, roth_growth_raw, broker_growth_raw, n_sims=100, seed=42):
+    params = GROWTH_PROFILE_PARAMS[profile_key]
+    shift = params["shift"]
+    stddev = params["stddev"] / 100
+    mean_ira = max(0.5, ira_growth_raw + shift) / 100
+    mean_roth = max(0.5, roth_growth_raw + shift) / 100
+    mean_broker = max(0.5, broker_growth_raw + shift) / 100
+    horizon = core_args.get("horizon_override") or core_args["sim_years"]
+    rng = np.random.default_rng(seed)
+    all_nw = np.zeros((n_sims, horizon))
+    for s in range(n_sims):
+        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, horizon))
+        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, horizon))
+        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, horizon))
+        gs = (ira_seq, roth_seq, broker_seq)
+        df_sim = calculate_roadmap(
+            **{**core_args, "ira_growth": mean_ira, "roth_growth": mean_roth, "broker_growth": mean_broker},
+            growth_sequence=gs
+        )
+        all_nw[s] = df_sim["Expected Net Worth"].values
+    years = list(range(core_args["retire_year"], core_args["retire_year"] + horizon))
+    p10 = np.percentile(all_nw, 10, axis=0)
+    p50 = np.percentile(all_nw, 50, axis=0)
+    p90 = np.percentile(all_nw, 90, axis=0)
+    return years, p10, p50, p90
+
+@st.cache_data
 def calculate_roadmap(
     ira_h_init, ira_w_init, roth_init, brokerage_init,
     retire_year, sim_years, h_age_at_retire, w_age_at_retire,
@@ -409,7 +473,8 @@ def calculate_roadmap(
     ira_growth, roth_growth, broker_growth, inflation_rate,
     lang, withdrawal_strategy="tax_efficient",
     conv_override=None, ltcg_override=None, horizon_override=None,
-    ss_start_h=None, ss_start_w=None, conv_stop_age_override=None
+    ss_start_h=None, ss_start_w=None, conv_stop_age_override=None,
+    growth_sequence=None
 ):
     t_internal = LANG_MAP[lang]
     rows = []
@@ -612,11 +677,15 @@ def calculate_roadmap(
             cur_ira_h -= h_ratio * amt_to_deduct
             cur_ira_w -= w_ratio * amt_to_deduct
         
-        cur_ira_h = max(0, cur_ira_h) * (1 + ira_growth)
-        cur_ira_w = max(0, cur_ira_w) * (1 + ira_growth)
-        yearly_roth_growth = cur_roth * roth_growth
+        if growth_sequence is not None:
+            yr_ira_g, yr_roth_g, yr_broker_g = growth_sequence[0][i], growth_sequence[1][i], growth_sequence[2][i]
+        else:
+            yr_ira_g, yr_roth_g, yr_broker_g = ira_growth, roth_growth, broker_growth
+        cur_ira_h = max(0, cur_ira_h) * (1 + yr_ira_g)
+        cur_ira_w = max(0, cur_ira_w) * (1 + yr_ira_g)
+        yearly_roth_growth = cur_roth * yr_roth_g
         cur_roth = (cur_roth + active_conversion + yearly_roth_growth)
-        cur_brokerage *= (1 + broker_growth)
+        cur_brokerage *= (1 + yr_broker_g)
         
         total_nw = cur_ira_h + cur_ira_w + cur_roth + cur_brokerage
         
@@ -719,19 +788,19 @@ with tab_roadmap:
             f"IRA {ira_pct:.0f}% | Roth {roth_pct:.0f}% | Taxable {broker_pct:.0f}%"), unsafe_allow_html=True)
     with c2:
         st.markdown(_kpi_card(t["kpi_nw"], f"${nw_strat:,.0f}", "46, 204, 113",
-            f"Base: ${nw_base:,.0f} | Opt: ${nw_opt:,.0f}"), unsafe_allow_html=True)
+            f"Idle: ${nw_base:,.0f} | Opt: ${nw_opt:,.0f}"), unsafe_allow_html=True)
     with c3:
         st.markdown(_kpi_card(t["kpi_total_outflow"].format(sim_years=sim_years), f"${total_outflow:,.0f}", "149, 165, 166",
             f"Living: ${total_living:,.0f} | Tax: ${total_tax_paid:,.0f}"), unsafe_allow_html=True)
     with c4:
         st.markdown(_kpi_card(t["kpi_tax"], f"${tax_strat:,.0f}", "243, 156, 18",
-            f"Base: ${tax_base:,.0f} | Opt: ${tax_opt:,.0f}"), unsafe_allow_html=True)
+            f"Idle: ${tax_base:,.0f} | Opt: ${tax_opt:,.0f}"), unsafe_allow_html=True)
     with c5:
         st.markdown(_kpi_card(t["kpi_rmd"], f"${total_rmd:,.0f}", "230, 126, 34",
             f"{rmd_pct_of_ira:.0f}% of initial IRA balance"), unsafe_allow_html=True)
     with c6:
         st.markdown(_kpi_card(t["kpi_roth"], f"${roth_strat:,.0f}", "52, 152, 219",
-            f"Base: ${roth_base:,.0f} | Opt: ${roth_opt:,.0f}"), unsafe_allow_html=True)
+            f"Idle: ${roth_base:,.0f} | Opt: ${roth_opt:,.0f}"), unsafe_allow_html=True)
 
     # --- SUMMARY TABLE ---
     st.divider()
@@ -789,12 +858,41 @@ with tab_withdrawal:
             ws_chart_data.append({"Year": row["Year"], "Expected Net Worth": row["Expected Net Worth"], "Strategy": ws_name})
     df_ws_chart = pd.DataFrame(ws_chart_data)
     ws_chart = alt.Chart(df_ws_chart).mark_line(strokeWidth=2.5).encode(
-        x=alt.X('Year:Q', title="Year"),
+        x=alt.X('Year:Q', title="Year", axis=alt.Axis(format='d')),
         y=alt.Y('Expected Net Worth:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
-        color=alt.Color('Strategy:N', legend=alt.Legend(title="Withdrawal Strategy")),
-        tooltip=[alt.Tooltip('Year:Q'), alt.Tooltip('Expected Net Worth:Q', format='$,.0f'), alt.Tooltip('Strategy:N')]
+        color=alt.Color('Strategy:N', sort=ws_chart_display, legend=alt.Legend(title="Withdrawal Strategy")),
+        tooltip=[alt.Tooltip('Year:Q', format='d'), alt.Tooltip('Expected Net Worth:Q', format='$,.0f'), alt.Tooltip('Strategy:N')]
     )
     st.altair_chart(ws_chart, use_container_width=True)
+
+    st.divider()
+    st.subheader(t["growth_chart_h"])
+    st.caption(t["growth_chart_desc"].format(sim_years=sim_years))
+    gp_chart_keys = ["ultra_conservative", "conservative", "moderate", "aggressive"]
+    gp_chart_display = [t["gp_ultra_conservative"], t["gp_conservative"], t["gp_moderate"], t["gp_aggressive"]]
+    mc_chart_data = []
+    mc_core = {k: v for k, v in core_args.items() if k != "withdrawal_strategy"}
+    mc_core["withdrawal_strategy"] = "tax_efficient"
+    with st.spinner(t.get("mc_spinner", "Running Monte Carlo simulations...")):
+        for gp_key, gp_name in zip(gp_chart_keys, gp_chart_display):
+            years, p10, p50, p90 = run_monte_carlo(mc_core, gp_key, ira_growth_raw, roth_growth_raw, broker_growth_raw)
+            for j, yr in enumerate(years):
+                mc_chart_data.append({"Year": yr, "Median": p50[j], "P10": p10[j], "P90": p90[j], "Profile": gp_name})
+    df_mc = pd.DataFrame(mc_chart_data)
+    color_scale = alt.Scale(domain=gp_chart_display, range=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+    base_lines = alt.Chart(df_mc).mark_line(strokeWidth=2.5).encode(
+        x=alt.X('Year:Q', title="Year", axis=alt.Axis(format='d')),
+        y=alt.Y('Median:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
+        color=alt.Color('Profile:N', scale=color_scale, sort=gp_chart_display, legend=alt.Legend(title="Growth Profile")),
+        tooltip=[alt.Tooltip('Year:Q', format='d'), alt.Tooltip('Median:Q', title="Median", format='$,.0f'), alt.Tooltip('P10:Q', title="10th Pctl", format='$,.0f'), alt.Tooltip('P90:Q', title="90th Pctl", format='$,.0f'), alt.Tooltip('Profile:N')]
+    )
+    bands = alt.Chart(df_mc).mark_area(opacity=0.15).encode(
+        x=alt.X('Year:Q', axis=alt.Axis(format='d')),
+        y=alt.Y('P10:Q', title=""),
+        y2='P90:Q',
+        fill=alt.Fill('Profile:N', scale=color_scale, sort=gp_chart_display, legend=None)
+    )
+    st.altair_chart(alt.layer(base_lines, bands), use_container_width=True)
 
 with tab_lab:
     # 1. Enforce a minimum of 20 years for the Strategy Lab to allow the algorithm sufficient runway,
