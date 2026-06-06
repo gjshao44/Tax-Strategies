@@ -863,7 +863,7 @@ with tab_withdrawal:
         color=alt.Color('Strategy:N', sort=ws_chart_display, legend=alt.Legend(title="Withdrawal Strategy")),
         tooltip=[alt.Tooltip('Year:Q', format='d'), alt.Tooltip('Expected Net Worth:Q', format='$,.0f'), alt.Tooltip('Strategy:N')]
     )
-    st.altair_chart(ws_chart, use_container_width=True)
+    st.altair_chart(ws_chart, width='stretch')
 
     st.divider()
     st.subheader(t["growth_chart_h"])
@@ -892,7 +892,7 @@ with tab_withdrawal:
         y2='P90:Q',
         fill=alt.Fill('Profile:N', scale=color_scale, sort=gp_chart_display, legend=None)
     )
-    st.altair_chart(alt.layer(base_lines, bands), use_container_width=True)
+    st.altair_chart(alt.layer(base_lines, bands), width='stretch')
 
 with tab_lab:
     # 1. Enforce a minimum of 20 years for the Strategy Lab to allow the algorithm sufficient runway,
