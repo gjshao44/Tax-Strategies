@@ -256,6 +256,23 @@ with st.sidebar:
         inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
         inflation_rate = inflation_rate_raw / 100
 
+    st.sidebar.markdown("<br>" * 10, unsafe_allow_html=True)
+    st.sidebar.markdown("---")
+
+    # 2. Display the Copyright Notice
+    st.sidebar.caption("© 2026 G. Shao (github gjshao44). All rights reserved.")
+
+    # 3. Add scannable links to your policy files
+    # Note: If hosting publicly, replace these names with your live GitHub or website URLs
+    st.sidebar.markdown(
+        """
+        <div style="font-size: 0.8rem; opacity: 0.7;">
+            <a href="https://github.com/gjshao44/Tax-Strategies/blob/main/TERMS.md" target="_blank" style="color: inherit; text-decoration: none; margin-right: 10px;">Terms of Service</a> | 
+            <a href="https://github.com/gjshao44/Tax-Strategies/blob/main/PRIVACY.md" target="_blank" style="color: inherit; text-decoration: none; margin-left: 10px;">Privacy Policy</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+)
 # --- 3. CORE CALCULATORS ---
 def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, status, year_idx):
     ord_tax = 0
