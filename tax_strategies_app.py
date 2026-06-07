@@ -28,7 +28,7 @@ LANG_MAP = {
 * **Explore Strategy Lab:** Navigate to the "Strategy Lab" tab to run automated sensitivity analyses that identify your mathematically optimal annual Roth conversion amount and window.
 * **Observe Expected Net Worth:** Watch the comparison and roadmap to see how paying taxes early preserves long-term survival-weighted capital.
 """,
-        "kpi_h": "🚀 {sim_years}-Year Roth Optimization vs. Idle",
+        "kpi_h": "🚀 {sim_years}-Year Combined Optimization vs. Idle",
         "kpi_init_nw": "Initial Net Worth",
         "kpi_nw": "Weighted Expected NW",
         "kpi_tax": "Total Federal Tax Paid",
@@ -78,14 +78,14 @@ LANG_MAP = {
         "sum_liability": "Total {sim_years}-Yr Tax Liability",
         "total_label": "**TOTAL ASSETS**",
         "comp_header": "⚖️ Strategy vs. Baseline Comparison ({sim_years}-Year Summary)",
-        "comp_desc": "Compares your active and optimal Roth strategies against idle (zero Roth conversions, no capital gains harvesting) over {sim_years} years. Success is measured by maximizing survival-weighted Expected Net Worth.",
+        "comp_desc": "Compares your active strategy and the combined optimal (Roth, SS, muni, capital gains, withdrawal) against idle over {sim_years} years. Success is measured by maximizing survival-weighted Expected Net Worth.",
         "kpi_nw_gain": "Expected Net Worth Gain (Mean)",
         "kpi_tax_saved": "Cumulative Taxes Saved",
         "kpi_tax_extra": "Upfront Tax Cost",
         "kpi_roth_boost": "Final Roth Reservoir Boost",
         "kpi_baseline": "Do Nothing",
         "kpi_strategy": "Your Plan",
-        "kpi_optimum": "Best Roth",
+        "kpi_optimum": "Combined Optimal",
         "tab_roadmap": "📋 Plan Summary",
         "roadmap_tab_h": "Your Optimized Retirement Plan",
         "roadmap_tab_desc": "This is the combined result of all your decisions from the previous tabs — retirement timing, Social Security claiming, Roth conversions, muni allocation, and capital gains harvesting. The KPIs compare your active strategy against doing nothing (Idle) and the mathematically optimal path.",
@@ -225,7 +225,7 @@ LANG_MAP = {
 * **探索策略实验室:** 导航到“策略实验室”选项卡，运行自动化敏感性分析，找出数学上最优的年度 Roth 转换金额和时间窗口。
 * **观察预期净资产 (Expected Net Worth):** 关注路线图和对比，观察通过早期纳税如何保护长期的生存加权资本。
 """,
-        "kpi_h": "🚀 {sim_years}年 Roth优化 vs. 无操作",
+        "kpi_h": "🚀 {sim_years}年 综合优化 vs. 无操作",
         "kpi_init_nw": "初始净资产", 
         "kpi_nw": "加权预期净资产",
         "kpi_tax": "联邦税总支出",
@@ -275,14 +275,14 @@ LANG_MAP = {
         "sum_liability": "{sim_years}年总税务责任",
         "total_label": "**资产总计**",
         "comp_header": "⚖️ 优化策略 vs. 基准对比 ({sim_years}年累计)",
-        "comp_desc": "在{sim_years}年周期内，将您的主动策略与最佳路径，同不操作方案（零Roth转换、零资本利得变现）进行对比。成功标准为最大化生存加权预期净值。",
+        "comp_desc": "在{sim_years}年周期内，将您的主动策略与综合最优（Roth、社保、市政债、资本利得、提取策略）同不操作方案进行对比。成功标准为最大化生存加权预期净值。",
         "kpi_nw_gain": "预期净资产提升 (平均)",
         "kpi_tax_saved": "累计节省税款",
         "kpi_tax_extra": "前期税务成本",
         "kpi_roth_boost": "免税 Roth 账户增幅",
         "kpi_baseline": "不操作",
         "kpi_strategy": "当前计划",
-        "kpi_optimum": "最优Roth",
+        "kpi_optimum": "综合最优",
         "tab_roadmap": "📋 计划总览",
         "roadmap_tab_h": "您的优化退休计划",
         "roadmap_tab_desc": "这是前面所有选项卡决策的综合结果——退休时间、社保领取、Roth转换、市政债券配置和资本利得变现。KPI将您的主动策略与不操作（Idle）和数学最优路径进行对比。",
@@ -412,6 +412,11 @@ GROWTH_PROFILE_PARAMS = {
 }
 
 # --- 2. SIDEBAR INPUTS ---
+if st.session_state.get("_apply_all_pending"):
+    st.session_state["_apply_all_pending"] = False
+    for k, v in st.session_state["_apply_all_values"].items():
+        st.session_state[k] = v
+
 with st.sidebar:
     lang = st.radio("Language / 语言选择", ["English", "Chinese"], horizontal=True)
     t = LANG_MAP[lang]
@@ -422,8 +427,12 @@ with st.sidebar:
     status_idx = status_options.index(saved_status) if saved_status in status_options else 0
     tax_status = st.selectbox(t["filing_status"], status_options, index=status_idx)
     sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 25)))
-    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, value=int(st.session_state.get("roth_conv", 40000)), step=5000)
-    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, value=int(st.session_state.get("annual_ltcg", 20000)), step=10000)
+    if "roth_conv" not in st.session_state:
+        st.session_state["roth_conv"] = 40000
+    if "annual_ltcg" not in st.session_state:
+        st.session_state["annual_ltcg"] = 20000
+    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, step=5000, key="roth_conv")
+    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, step=10000, key="annual_ltcg")
     ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
     ws_keys = list(ws_map.keys())
     ws_labels = list(ws_map.values())
@@ -444,8 +453,14 @@ with st.sidebar:
     annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
     qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
     qd_perc = qd_perc_raw / 100
-    taxable_div_in = st.number_input("Annual Taxable Dividends", value=int(st.session_state.get("taxable_div_in", 33000)))
-    muni_int_in = st.number_input("Annual Tax-Free Muni Interest", value=int(st.session_state.get("muni_int_in", 37000)))
+    if "taxable_div_in" not in st.session_state:
+        st.session_state["taxable_div_in"] = 33000
+    if "muni_int_in" not in st.session_state:
+        st.session_state["muni_int_in"] = 37000
+    st.number_input("Annual Taxable Dividends", key="taxable_div_in")
+    taxable_div_in = st.session_state["taxable_div_in"]
+    st.number_input("Annual Tax-Free Muni Interest", key="muni_int_in")
+    muni_int_in = st.session_state["muni_int_in"]
 
     with st.expander(t["sidebar_timeline"], expanded=False):
         retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
@@ -1296,7 +1311,8 @@ with tab_lab:
     st.success(f"💡 **{t['lab_roth_optimum']} {best_amt_for_calc:,.0f}** (current setting: {roth_conv:,.0f})")
     if best_amt_for_calc != roth_conv:
         if st.button(f"Apply: Set annual Roth conversion to {best_amt_for_calc:,.0f}", key="apply_roth_top"):
-            st.session_state["roth_conv"] = int(best_amt_for_calc)
+            st.session_state["_apply_all_pending"] = True
+            st.session_state["_apply_all_values"] = {"roth_conv": int(best_amt_for_calc)}
             st.rerun()
 
     st.divider()
@@ -1594,7 +1610,12 @@ with tab_muni:
     best_muni_nw = best_muni_row[t["muni_col_final_nw"]]
     worst_muni_nw = df_muni_results[t["muni_col_final_nw"]].min()
 
-    st.markdown(f"**{t['muni_insight']}:** Optimal muni allocation is **{best_muni_pct}** of fixed income ({total_fixed_income:,.0f}), yielding {best_muni_nw:,.0f} final expected net worth — {best_muni_nw - worst_muni_nw:,.0f} more than the worst allocation.")
+    tey_favors_taxable = tey <= taxable_yield_pct
+    best_pct_val = int(best_muni_pct.replace("%", ""))
+    if tey_favors_taxable and best_pct_val > 0:
+        st.markdown(f"**{t['muni_insight']}:** Although taxable bonds win on pure yield, the full simulation (including IRMAA savings and tax interactions over time) favors **{best_muni_pct}** muni allocation of fixed income ({total_fixed_income:,.0f}), yielding {best_muni_nw:,.0f} final expected net worth — {best_muni_nw - worst_muni_nw:,.0f} more than the worst allocation.")
+    else:
+        st.markdown(f"**{t['muni_insight']}:** Optimal muni allocation is **{best_muni_pct}** of fixed income ({total_fixed_income:,.0f}), yielding {best_muni_nw:,.0f} final expected net worth — {best_muni_nw - worst_muni_nw:,.0f} more than the worst allocation.")
 
     current_pct = int(round(muni_int_in / max(1, total_fixed_income) * 100))
     if str(current_pct) + "%" != best_muni_pct:
@@ -1602,8 +1623,11 @@ with tab_muni:
         best_muni_dollar = int(total_fixed_income * best_pct_int / 100)
         best_taxable_dollar = total_fixed_income - best_muni_dollar
         if st.button(f"Apply: Set muni to {best_muni_dollar:,.0f} and taxable to {best_taxable_dollar:,.0f}", key="apply_muni"):
-            st.session_state["muni_int_in"] = best_muni_dollar
-            st.session_state["taxable_div_in"] = best_taxable_dollar
+            st.session_state["_apply_all_pending"] = True
+            st.session_state["_apply_all_values"] = {
+                "muni_int_in": best_muni_dollar,
+                "taxable_div_in": best_taxable_dollar,
+            }
             st.rerun()
 
     # --- Chart ---
@@ -1739,7 +1763,8 @@ with tab_cg:
 
     if annual_ltcg != best_cg_amt:
         if st.button(f"Apply: Set annual capital gains to {best_cg_amt:,.0f}", key="apply_cg_optimal"):
-            st.session_state["annual_ltcg"] = best_cg_amt
+            st.session_state["_apply_all_pending"] = True
+            st.session_state["_apply_all_values"] = {"annual_ltcg": best_cg_amt}
             st.rerun()
 
     # --- Chart ---
@@ -1944,9 +1969,25 @@ with tab_roadmap:
     st.caption(t["roadmap_tab_desc"])
 
     # --- 1. CALCULATE THREE SCENARIOS ---
+    best_pct_int_road = int(best_muni_pct.replace("%", ""))
+    best_muni_dollar_road = int(total_fixed_income * best_pct_int_road / 100)
+    best_taxable_dollar_road = total_fixed_income - best_muni_dollar_road
+
+    # Re-compute optimal Roth given all other optimal settings
+    joint_base_args = {
+        **core_args,
+        "ss_h_monthly": int(best_h_monthly), "ss_h_start": best_h_start_yr,
+        "ss_w_monthly": int(best_w_monthly), "ss_w_start": best_w_start_yr,
+        "muni_int_in": best_muni_dollar_road, "taxable_div_in": best_taxable_dollar_road,
+        "annual_ltcg": best_cg_amt,
+        "withdrawal_strategy": best_ws_key,
+    }
+    best_roth_joint = get_optimal_conversion(joint_base_args, lab_horizon, legacy_weight_val, max_irmaa_limit_val)
+
     df_baseline = calculate_roadmap(**core_args, conv_override=0, ltcg_override=0)
     df_active = calculate_roadmap(**core_args)
-    df_optimal = calculate_roadmap(**core_args, conv_override=best_amt_for_calc)
+    optimal_args = {**joint_base_args, "roth_conv": best_roth_joint}
+    df_optimal = calculate_roadmap(**optimal_args)
 
     # --- 2. EXTRACT METRICS ---
     mid_idx = int(sim_years * 0.33)
@@ -1973,6 +2014,64 @@ with tab_roadmap:
         st.success(f"**Your active strategy adds {nw_gain_vs_idle:,.0f} in expected net worth** vs. doing nothing over {sim_years} years. Final expected NW: {final_nw_active:,.0f}. Total tax: {total_tax_paid:,.0f}.")
     else:
         st.warning(f"**Your current settings underperform idle** by {-nw_gain_vs_idle:,.0f}. Consider adjusting Roth conversion or capital gains harvesting in earlier tabs.")
+
+    # --- OPTIMIZATION SUMMARY: surface each tab's recommendation ---
+    st.divider()
+    st.subheader("⚡ Recommended Settings from Each Tab")
+
+    opt_rows = []
+    any_unapplied = False
+
+    # Roth conversion (jointly optimized with other settings)
+    roth_applied = (roth_conv == best_roth_joint)
+    opt_rows.append({"Decision": "Roth Conversion", "Optimal": f"${best_roth_joint:,.0f}/yr", "Current": f"${roth_conv:,.0f}/yr", "Applied": "✅" if roth_applied else "❌"})
+    if not roth_applied:
+        any_unapplied = True
+
+    # Social Security
+    ss_applied = (abs(best_h_monthly - ss_h_monthly) < 1 and abs(best_w_monthly - ss_w_monthly) < 1
+                  and best_h_start_yr == ss_h_start and best_w_start_yr == ss_w_start)
+    opt_rows.append({"Decision": "Social Security", "Optimal": f"H:{best_h_claim} W:{best_w_claim}", "Current": f"H:{ss_h_start - birth_year_h} W:{ss_w_start - birth_year_w}", "Applied": "✅" if ss_applied else "❌"})
+    if not ss_applied:
+        any_unapplied = True
+
+    # Muni allocation
+    muni_applied = (muni_int_in == best_muni_dollar_road)
+    opt_rows.append({"Decision": "Muni Allocation", "Optimal": f"{best_muni_pct} (${best_muni_dollar_road:,.0f})", "Current": f"{int(round(muni_int_in / max(1, total_fixed_income) * 100))}% (${muni_int_in:,.0f})", "Applied": "✅" if muni_applied else "❌"})
+    if not muni_applied:
+        any_unapplied = True
+
+    # Capital gains harvesting
+    cg_applied = (annual_ltcg == best_cg_amt)
+    opt_rows.append({"Decision": "Capital Gains Harvest", "Optimal": f"${best_cg_amt:,.0f}/yr", "Current": f"${annual_ltcg:,.0f}/yr", "Applied": "✅" if cg_applied else "❌"})
+    if not cg_applied:
+        any_unapplied = True
+
+    # Withdrawal strategy
+    ws_applied = (withdrawal_strategy == best_ws_key)
+    opt_rows.append({"Decision": "Withdrawal Strategy", "Optimal": best_ws_name, "Current": current_ws_name, "Applied": "✅" if ws_applied else "❌"})
+    if not ws_applied:
+        any_unapplied = True
+
+    st.dataframe(pd.DataFrame(opt_rows), width='stretch', hide_index=True)
+
+    if any_unapplied:
+        if st.button("🚀 Apply All Optimal Settings", key="apply_all_optimal"):
+            st.session_state["_apply_all_pending"] = True
+            st.session_state["_apply_all_values"] = {
+                "roth_conv": int(best_roth_joint),
+                "ss_h_monthly": int(best_h_monthly),
+                "ss_h_start": best_h_start_yr,
+                "ss_w_monthly": int(best_w_monthly),
+                "ss_w_start": best_w_start_yr,
+                "muni_int_in": best_muni_dollar_road,
+                "taxable_div_in": best_taxable_dollar_road,
+                "annual_ltcg": best_cg_amt,
+                "withdrawal_strategy": best_ws_key,
+            }
+            st.rerun()
+    else:
+        st.success("All settings are already at their optimal values.")
 
     # --- 3. KPI DASHBOARD ---
     st.divider()
