@@ -1063,7 +1063,7 @@ with tab_retire:
         opacity=alt.condition(nearest, alt.value(0.6), alt.value(0)),
     )
 
-    st.altair_chart(alt.layer(lines, selectors, points, vrule), use_container_width=True)
+    st.altair_chart(alt.layer(lines, selectors, points, vrule), width='stretch')
 
     st.subheader(t["retire_table_h"])
     df_retire_summary = pd.DataFrame(retire_summary_rows)
@@ -1073,7 +1073,7 @@ with tab_retire:
             t["retire_col_final_nw"]: "${:,.0f}",
             t["retire_col_total_tax"]: "${:,.0f}",
         }),
-        use_container_width=True,
+        width='stretch',
         hide_index=True
     )
 
@@ -1219,7 +1219,7 @@ with tab_ss:
         opacity=alt.condition(nearest_ss, alt.value(0.6), alt.value(0)),
     )
 
-    st.altair_chart(alt.layer(lines_ss, selectors_ss, points_ss, vrule_ss), use_container_width=True)
+    st.altair_chart(alt.layer(lines_ss, selectors_ss, points_ss, vrule_ss), width='stretch')
 
     st.subheader(t["ss_table_h"])
     df_ss_summary = pd.DataFrame(ss_summary_rows)
@@ -1231,7 +1231,7 @@ with tab_ss:
             t["ss_col_final_nw"]: "${:,.0f}",
             t["ss_col_total_tax"]: "${:,.0f}",
         }),
-        use_container_width=True,
+        width='stretch',
         hide_index=True
     )
     st.caption(f"Note: Benefits shown are each spouse's own benefit at their claiming age. If W's own benefit < 50% of H's FRA (${h_fra_monthly * 0.5:,.0f}/mo), she may be eligible for a spousal top-up once H files — enter the higher amount as her estimate if applicable.")
@@ -1247,7 +1247,7 @@ with tab_ss:
                 "W Monthly": f"${w_benefit:,.0f}",
                 "Combined Annual": f"${(h_benefit + w_benefit) * 12:,.0f}",
             })
-        st.dataframe(pd.DataFrame(ss_extrap_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(ss_extrap_data), width='stretch', hide_index=True)
         st.caption("Based on SSA formula: 5/9% per month reduction before FRA (first 36 months), 5/12% per month thereafter. 8% per year delayed credit after FRA up to age 70.")
 
 with tab_lab:
@@ -1458,7 +1458,7 @@ with tab_lab:
         ),
         tooltip=[alt.Tooltip('Year:O'), alt.Tooltip('Age:Q'), alt.Tooltip('Phase:N')]
     ).encode(y=alt.value(20))
-    st.altair_chart(golden_chart, use_container_width=True)
+    st.altair_chart(golden_chart, width='stretch')
 
     col_gw1, col_gw2, col_gw3 = st.columns(3)
     col_gw1.metric("Golden Window", f"{retire_year}–{golden_end}" if golden_end >= retire_year else "None", f"{max(0, golden_end - retire_year + 1)} years")
@@ -1509,7 +1509,7 @@ with tab_lab:
                 "Filled By": fills if fills else "—",
             })
 
-        st.dataframe(pd.DataFrame(bracket_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(bracket_rows), width='stretch', hide_index=True)
         st.caption(f"Based on retirement year 1 with ${other_income:,.0f} ordinary income + ${optimal_conv:,.0f} optimal Roth conversion. Standard deduction: ${total_deduction:,.0f} ({tax_status}).")
 
 with tab_muni:
@@ -1635,7 +1635,7 @@ with tab_muni:
     vrule_muni = alt.Chart(df_muni_chart_all).mark_rule(color='gray', strokeDash=[3, 3]).encode(
         x='Year:Q', opacity=alt.condition(nearest_muni, alt.value(0.6), alt.value(0))
     )
-    st.altair_chart(alt.layer(muni_lines, selectors_muni, points_muni, vrule_muni), use_container_width=True)
+    st.altair_chart(alt.layer(muni_lines, selectors_muni, points_muni, vrule_muni), width='stretch')
 
     # --- IRMAA impact note ---
     st.divider()
@@ -1660,7 +1660,7 @@ with tab_muni:
         for yld in ref_yields:
             row_data[f"{yld:.1f}% Muni"] = f"{yld / (1 - bracket):.2f}%"
         tey_rows.append(row_data)
-    st.dataframe(pd.DataFrame(tey_rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(tey_rows), width='stretch', hide_index=True)
 
     # --- Comparison table ---
     st.dataframe(
@@ -1671,7 +1671,7 @@ with tab_muni:
             t["muni_col_total_tax"]: "${:,.0f}",
             t["muni_col_magi_yr1"]: "${:,.0f}",
         }),
-        use_container_width=True, hide_index=True
+        width='stretch', hide_index=True
     )
 
 with tab_cg:
@@ -1771,7 +1771,7 @@ with tab_cg:
     vrule_cg = alt.Chart(df_cg_chart_all).mark_rule(color='gray', strokeDash=[3, 3]).encode(
         x='Year:Q', opacity=alt.condition(nearest_cg, alt.value(0.6), alt.value(0))
     )
-    st.altair_chart(alt.layer(cg_lines, selectors_cg, points_cg, vrule_cg), use_container_width=True)
+    st.altair_chart(alt.layer(cg_lines, selectors_cg, points_cg, vrule_cg), width='stretch')
 
     # --- Comparison table ---
     st.divider()
@@ -1784,7 +1784,7 @@ with tab_cg:
             t["cg_col_final_nw"]: "${:,.0f}",
             t["cg_col_total_tax"]: "${:,.0f}",
         }),
-        use_container_width=True, hide_index=True
+        width='stretch', hide_index=True
     )
 
     # --- Reference table ---
@@ -1796,7 +1796,7 @@ with tab_cg:
         {"Rate": "20%", "Single": "Over $291,850", "MFJ": "Over $583,750"},
         {"Rate": "3.8% NIIT", "Single": "MAGI > $200,000", "MFJ": "MAGI > $250,000"},
     ]
-    st.dataframe(pd.DataFrame(cg_ref_data), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(cg_ref_data), width='stretch', hide_index=True)
 
 with tab_whatif:
     st.subheader(t["whatif_h"])
@@ -1875,7 +1875,7 @@ with tab_whatif:
     vrule_ws = alt.Chart(df_ws_chart).mark_rule(color='gray', strokeDash=[3, 3]).encode(
         x='Year:Q', opacity=alt.condition(nearest_ws, alt.value(0.6), alt.value(0))
     )
-    st.altair_chart(alt.layer(ws_lines, selectors_ws, points_ws, vrule_ws), use_container_width=True)
+    st.altair_chart(alt.layer(ws_lines, selectors_ws, points_ws, vrule_ws), width='stretch')
 
     # --- Growth profile Monte Carlo ---
     st.divider()
@@ -1935,7 +1935,7 @@ with tab_whatif:
             y2='P90:Q',
             fill=alt.Fill('Profile:N', scale=color_scale, sort=mc_profiles_shown, legend=None)
         )
-        st.altair_chart(alt.layer(base_lines, bands), use_container_width=True)
+        st.altair_chart(alt.layer(base_lines, bands), width='stretch')
     else:
         st.warning("Select at least one profile to display.")
 
@@ -2044,7 +2044,7 @@ with tab_roadmap:
     vrule_plan = alt.Chart(df_plan_chart).mark_rule(color='gray', strokeDash=[3, 3]).encode(
         x='Year:Q', opacity=alt.condition(nearest_plan, alt.value(0.6), alt.value(0))
     )
-    st.altair_chart(alt.layer(plan_lines, selectors_plan, points_plan, vrule_plan), use_container_width=True)
+    st.altair_chart(alt.layer(plan_lines, selectors_plan, points_plan, vrule_plan), width='stretch')
 
     # --- SUMMARY TABLE ---
     st.divider()
