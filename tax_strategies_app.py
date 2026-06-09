@@ -1143,12 +1143,18 @@ with tab_ss:
 
     h_fra_monthly = estimate_ss_at_age(ss_est_amt_h, ss_est_age_h, 67)
 
+    seen_effective = set()
     with st.spinner("Comparing Social Security claiming strategies..."):
         for label, h_claim_age, w_claim_age in ss_strategies:
-            h_monthly = estimate_ss_at_age(ss_est_amt_h, ss_est_age_h, h_claim_age)
-            w_monthly = estimate_ss_at_age(ss_est_amt_w, ss_est_age_w, w_claim_age)
-            h_start_year = birth_year_h + h_claim_age
-            w_start_year = birth_year_w + w_claim_age
+            effective_h_claim = max(h_claim_age, h_age_at_retire)
+            effective_w_claim = max(w_claim_age, w_age_at_retire)
+            if (effective_h_claim, effective_w_claim) in seen_effective:
+                continue
+            seen_effective.add((effective_h_claim, effective_w_claim))
+            h_monthly = estimate_ss_at_age(ss_est_amt_h, ss_est_age_h, effective_h_claim)
+            w_monthly = estimate_ss_at_age(ss_est_amt_w, ss_est_age_w, effective_w_claim)
+            h_start_year = birth_year_h + effective_h_claim
+            w_start_year = birth_year_w + effective_w_claim
 
             test_args = {
                 **core_args,
@@ -1160,17 +1166,18 @@ with tab_ss:
 
             df_ss = calculate_roadmap(**test_args)
 
+            effective_label = f"H:{effective_h_claim} / W:{effective_w_claim}"
             for _, row in df_ss.iterrows():
                 ss_chart_data.append({
                     "Year": row["Year"],
                     "Expected Net Worth": row["Expected Net Worth"],
-                    "Strategy": label
+                    "Strategy": effective_label
                 })
 
             ss_summary_rows.append({
-                t["ss_col_strategy"]: label,
-                t["ss_col_h_age"]: h_claim_age,
-                t["ss_col_w_age"]: w_claim_age,
+                t["ss_col_strategy"]: effective_label,
+                t["ss_col_h_age"]: effective_h_claim,
+                t["ss_col_w_age"]: effective_w_claim,
                 t["ss_col_h_monthly"]: h_monthly,
                 t["ss_col_w_monthly"]: w_monthly,
                 t["ss_col_annual"]: (h_monthly + w_monthly) * 12,
