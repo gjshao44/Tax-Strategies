@@ -134,19 +134,26 @@ LANG_MAP = {
         "growth_chart_h": "Growth Profile Monte Carlo (100 simulations per profile)",
         "growth_chart_desc": "Solid lines show median outcome; shaded bands show 10th–90th percentile range. Annual returns drawn from Normal(mean, σ) per profile over {sim_years} years.",
         "tab_retire": "🏖️ When to Retire?",
-        "retire_h": "When Should You Retire?",
-        "retire_desc": "Compares different retirement years to show how timing affects your long-term net worth, taxes, and financial security. Each scenario adjusts your salary income, Social Security timing, and account growth accordingly.",
-        "retire_chart_h": "Net Worth Trajectories by Retirement Year",
-        "retire_chart_desc": "Expected Net Worth over time for each retirement year scenario. Later retirement means more salary income and delayed withdrawals.",
-        "retire_table_h": "Summary Comparison",
+        "retire_h": "When Can You Afford to Retire?",
+        "retire_desc": "Simulates market uncertainty (Monte Carlo) for each retirement year to answer: can your money last through retirement? Results are expressed as confidence levels — e.g., '90% confidence' means in 90 out of 100 simulated market scenarios, your money lasts through your full retirement horizon.",
+        "retire_chart_h": "Retirement Confidence by Year",
+        "retire_chart_desc": "For each potential retirement year, the percentage of simulated market scenarios where your money lasts through the full horizon. Higher bars = safer.",
+        "retire_table_h": "Confidence Analysis",
         "retire_col_year": "Retire Year",
         "retire_col_age": "Your Age",
-        "retire_col_final_nw": "Final Net Worth",
-        "retire_col_total_tax": "Total Tax Paid",
-        "retire_col_ss_annual": "Annual SS (Combined)",
+        "retire_col_confidence": "Confidence (money lasts)",
+        "retire_col_nw_90": "Final NW (90% confidence)",
+        "retire_col_nw_75": "Final NW (75% confidence)",
+        "retire_col_nw_50": "Final NW (50% confidence)",
         "retire_col_working_years": "Extra Working Years",
         "retire_current": "(current)",
         "retire_insight": "Key Insight",
+        "gap_chart_h": "Income vs. Expense Over Time",
+        "gap_chart_desc": "Shows how passive income covers expenses once Social Security kicks in. The gap (dashed) is what must come from savings each year.",
+        "gap_label_expense": "Expense",
+        "gap_label_income": "Passive Income",
+        "gap_label_gap": "Gap (from savings)",
+        "gap_y_title": "Annual Amount ($)",
         "tab_ss": "📅 When to Claim SS?",
         "ss_h": "When Should You Claim Social Security?",
         "ss_desc": "You can claim SS as early as 62 (reduced ~30%) or delay to 70 (+24% above FRA). Enter your estimated benefit at any age and we'll extrapolate the rest. The simulation compares claiming at different ages to show the long-term financial impact.",
@@ -331,19 +338,22 @@ LANG_MAP = {
         "growth_chart_h": "增长预期蒙特卡洛模拟 (每组100次)",
         "growth_chart_desc": "实线为中位数结果；阴影区域为10-90百分位范围。年回报按正态分布(均值, σ)随机抽样，模拟{sim_years}年。",
         "tab_retire": "🏖️ 何时退休？",
-        "retire_h": "何时退休最合适？",
-        "retire_desc": "比较不同退休年份对长期净资产、税负和财务安全的影响。每个方案会相应调整工资收入、社保领取时间和账户增长。",
-        "retire_chart_h": "不同退休年份的净资产走势",
-        "retire_chart_desc": "各退休年份方案下的预期净资产随时间变化。延迟退休意味着更多工资收入和延后提款。",
-        "retire_table_h": "对比摘要",
+        "retire_h": "何时可以负担得起退休？",
+        "retire_desc": "通过蒙特卡洛模拟市场不确定性，回答核心问题：你的钱能否撑过整个退休期？结果以置信度表示——例如「90%置信度」意味着在100次模拟中，有90次你的钱能撑到退休期末。",
+        "retire_chart_h": "各退休年份的置信度分析",
+        "retire_chart_desc": "每个潜在退休年份中，模拟市场情景下资金能撑过整个退休期的比例。柱越高越安全。",
+        "retire_table_h": "置信度分析详情",
         "retire_col_year": "退休年份",
         "retire_col_age": "退休年龄",
-        "retire_col_final_nw": "最终净资产",
-        "retire_col_total_tax": "总税负",
-        "retire_col_ss_annual": "年社保收入（合计）",
+        "retire_col_confidence": "置信度（资金持续）",
+        "retire_col_nw_90": "最终净资产（90%置信度）",
+        "retire_col_nw_75": "最终净资产（75%置信度）",
+        "retire_col_nw_50": "最终净资产（50%置信度）",
         "retire_col_working_years": "额外工作年数",
         "retire_current": "（当前）",
         "retire_insight": "关键发现",
+        "gap_chart_h": "收入与支出随时间变化",
+        "gap_chart_desc": "显示社会安全金开始后，被动收入如何覆盖支出。虚线（缺口）表示每年需从储蓄中提取的金额。",
         "tab_ss": "📅 何时领社保？",
         "ss_h": "何时开始领取社会安全金？",
         "ss_desc": "最早62岁可领取（减少约30%），最迟70岁（比正常退休年龄高24%）。输入您在任意年龄的预估金额，系统将推算其他年龄的金额。模拟对比不同领取年龄对长期财务的影响。",
@@ -429,10 +439,7 @@ with st.sidebar:
     sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 25)))
     if "roth_conv" not in st.session_state:
         st.session_state["roth_conv"] = 40000
-    if "annual_ltcg" not in st.session_state:
-        st.session_state["annual_ltcg"] = 20000
     roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, step=5000, key="roth_conv")
-    annual_ltcg = st.slider("Annual Cap Gains Realized ($)", 0, 1000000, step=10000, key="annual_ltcg")
     ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
     ws_keys = list(ws_map.keys())
     ws_labels = list(ws_map.values())
@@ -453,14 +460,25 @@ with st.sidebar:
     annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
     qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
     qd_perc = qd_perc_raw / 100
+
+    st.header("📥 Passive Income (Retirement)")
     if "taxable_div_in" not in st.session_state:
-        st.session_state["taxable_div_in"] = 33000
+        st.session_state["taxable_div_in"] = 0
     if "muni_int_in" not in st.session_state:
-        st.session_state["muni_int_in"] = 37000
-    st.number_input("Annual Taxable Dividends", key="taxable_div_in")
+        st.session_state["muni_int_in"] = 0
+    if "annual_ltcg" not in st.session_state:
+        st.session_state["annual_ltcg"] = 0
+    st.number_input("Annual Taxable Dividends ($)", key="taxable_div_in", help="Dividend income from taxable brokerage accounts during retirement.")
     taxable_div_in = st.session_state["taxable_div_in"]
-    st.number_input("Annual Tax-Free Muni Interest", key="muni_int_in")
+    st.number_input("Annual Tax-Free Muni Interest ($)", key="muni_int_in", help="Municipal bond interest income (tax-exempt).")
     muni_int_in = st.session_state["muni_int_in"]
+    annual_ltcg = st.number_input("Annual Capital Gains Realized ($)", value=int(st.session_state.get("annual_ltcg", 0)), step=10000, key="annual_ltcg", help="Expected annual long-term capital gains from brokerage account sales.")
+    ss_h_monthly = st.number_input("Husband SS Monthly ($)", value=int(st.session_state.get("ss_h_monthly", 4000)), step=100, help="Estimated Social Security monthly benefit.", key="ss_h_monthly")
+    ss_h_start = st.number_input("Husband SS Start Year", value=int(st.session_state.get("ss_h_start", 2029)), key="ss_h_start")
+    ss_w_monthly = st.number_input("Wife SS Monthly ($)", value=int(st.session_state.get("ss_w_monthly", 3000)), step=100, help="Estimated Social Security monthly benefit.", key="ss_w_monthly")
+    ss_w_start = st.number_input("Wife SS Start Year", value=int(st.session_state.get("ss_w_start", 2029)), key="ss_w_start")
+    _total_passive = taxable_div_in + muni_int_in + annual_ltcg + (ss_h_monthly + ss_w_monthly) * 12
+    st.caption(f"**Total passive income (at full SS): ${_total_passive:,.0f}/yr**")
 
     with st.expander(t["sidebar_timeline"], expanded=False):
         retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
@@ -472,11 +490,6 @@ with st.sidebar:
         ira_w_init = st.number_input("Wife IRA Balance ($)", value=int(st.session_state.get("ira_w_init", 10000)))
         roth_init = st.number_input("Roth IRA Balance ($)", value=int(st.session_state.get("roth_init", 100000)))
         brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=int(st.session_state.get("brokerage_init", 1000000)))
-
-    ss_h_monthly = int(st.session_state.get("ss_h_monthly", 4000))
-    ss_h_start = int(st.session_state.get("ss_h_start", 2029))
-    ss_w_monthly = int(st.session_state.get("ss_w_monthly", 3000))
-    ss_w_start = int(st.session_state.get("ss_w_start", 2029))
 
     with st.expander(t["sidebar_growth"], expanded=False):
         ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
@@ -665,6 +678,36 @@ def run_monte_carlo(core_args, profile_key, ira_growth_raw, roth_growth_raw, bro
     p50 = np.percentile(all_nw, 50, axis=0)
     p90 = np.percentile(all_nw, 90, axis=0)
     return years, p10, p50, p90
+
+@st.cache_data
+def run_retirement_confidence(core_args, ira_growth_raw, roth_growth_raw, broker_growth_raw, n_sims=200, seed=42):
+    """Run Monte Carlo for a single retirement scenario. Returns confidence % and percentile net worths."""
+    stddev = 0.16
+    mean_ira = ira_growth_raw / 100
+    mean_roth = roth_growth_raw / 100
+    mean_broker = broker_growth_raw / 100
+    horizon = core_args["sim_years"]
+    rng = np.random.default_rng(seed)
+    final_nw = np.zeros(n_sims)
+    money_lasts_count = 0
+    for s in range(n_sims):
+        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, horizon))
+        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, horizon))
+        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, horizon))
+        gs = (ira_seq, roth_seq, broker_seq)
+        df_sim = calculate_roadmap(
+            **{**core_args, "ira_growth": mean_ira, "roth_growth": mean_roth, "broker_growth": mean_broker},
+            growth_sequence=gs
+        )
+        final_total_nw = df_sim.iloc[-1]["Total Net Worth"]
+        final_nw[s] = final_total_nw
+        if final_total_nw > 0:
+            money_lasts_count += 1
+    confidence = money_lasts_count / n_sims * 100
+    nw_90 = float(np.percentile(final_nw, 10))
+    nw_75 = float(np.percentile(final_nw, 25))
+    nw_50 = float(np.percentile(final_nw, 50))
+    return confidence, nw_90, nw_75, nw_50
 
 @st.cache_data
 def calculate_roadmap(
@@ -930,31 +973,31 @@ with tab_retire:
     st.subheader(t["retire_h"])
     st.caption(t["retire_desc"])
 
-    col_r1, col_r2 = st.columns(2)
-    with col_r1:
-        annual_401k = st.number_input(
-            "Annual 401k Contribution ($)",
-            value=int(st.session_state.get("annual_401k", 23500)),
-            step=1000,
-            help="How much you contribute to 401k/IRA per year while working.",
-            key="annual_401k"
-        )
-    with col_r2:
-        annual_saving_rate = st.slider(
-            "Annual Savings Rate (%)",
-            min_value=10, max_value=60,
-            value=int(st.session_state.get("annual_saving_rate", 30)),
-            step=5,
-            help="Total % of salary saved (including 401k). Remainder after 401k goes to brokerage.",
-            key="annual_saving_rate"
-        )
+    with st.expander("Pre-retirement savings assumptions (for delayed retirement scenarios)", expanded=False):
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            annual_401k = st.number_input(
+                "Annual 401k Contribution ($)",
+                value=int(st.session_state.get("annual_401k", 23500)),
+                step=1000,
+                help="How much you contribute to 401k/IRA per year while working.",
+                key="annual_401k"
+            )
+        with col_r2:
+            annual_saving_rate = st.slider(
+                "Annual Savings Rate (%)",
+                min_value=10, max_value=60,
+                value=int(st.session_state.get("annual_saving_rate", 30)),
+                step=5,
+                help="Total % of salary saved (including 401k). Remainder after 401k goes to brokerage.",
+                key="annual_saving_rate"
+            )
 
     end_year = retire_year + sim_years
     retire_test_years = list(range(retire_year - 1, retire_year + 5))
-    retire_chart_data = []
     retire_summary_rows = []
 
-    with st.spinner("Comparing retirement year scenarios..."):
+    with st.spinner("Running Monte Carlo simulations for each retirement year..."):
         for ry in retire_test_years:
             years_delta = ry - retire_year
             test_h_age = h_age_at_retire + years_delta
@@ -993,100 +1036,155 @@ with tab_retire:
                 "last_salary": working_salary if years_delta >= 0 else 0,
             }
 
-            df_ry = calculate_roadmap(**test_args)
+            confidence, nw_90, nw_75, nw_50 = run_retirement_confidence(
+                test_args, ira_growth_raw, roth_growth_raw, broker_growth_raw
+            )
 
-            label = f"{ry} (age {test_h_age})"
-            if ry == retire_year:
-                label += f" {t['retire_current']}"
-
-            for _, row in df_ry.iterrows():
-                retire_chart_data.append({
-                    "Year": row["Year"],
-                    "Expected Net Worth": row["Expected Net Worth"],
-                    "Scenario": label
-                })
-
-            init_nw_at_retire = test_ira_h + ira_w_init + test_roth + test_broker
             retire_summary_rows.append({
                 t["retire_col_year"]: ry,
                 t["retire_col_age"]: f"{test_h_age}/{test_w_age}",
-                "Assets at Retirement": init_nw_at_retire,
-                t["retire_col_final_nw"]: df_ry.iloc[-1]["Expected Net Worth"],
-                t["retire_col_total_tax"]: df_ry["OUT: Fed Tax"].sum(),
+                t["retire_col_confidence"]: confidence,
+                t["retire_col_nw_90"]: nw_90,
+                t["retire_col_nw_75"]: nw_75,
+                t["retire_col_nw_50"]: nw_50,
                 t["retire_col_working_years"]: f"{years_delta:+d}" if years_delta != 0 else "baseline",
             })
 
-    best_scenario = max(retire_summary_rows, key=lambda r: r[t["retire_col_final_nw"]])
-    worst_scenario = min(retire_summary_rows, key=lambda r: r[t["retire_col_final_nw"]])
-    spread = best_scenario[t["retire_col_final_nw"]] - worst_scenario[t["retire_col_final_nw"]]
-    st.info(f"**{t['retire_insight']}:** The difference between retiring in {best_scenario[t['retire_col_year']]} vs. {worst_scenario[t['retire_col_year']]} is **{spread:,.0f}** in expected net worth at year {end_year}. All scenarios end at the same year for apples-to-apples comparison.")
+    # --- Key Insight: combined income summary + retirement confidence ---
+    ss_annual = (ss_h_monthly + ss_w_monthly) * 12
+    passive_total = taxable_div_in + muni_int_in + annual_ltcg + ss_annual
+    passive_pre_ss = taxable_div_in + muni_int_in + annual_ltcg
+    income_gap = annual_expense - passive_total
 
-    best_retire_year = best_scenario[t["retire_col_year"]]
-    if best_retire_year != retire_year:
-        best_age_str = best_scenario[t["retire_col_age"]]
-        if st.button(f"Apply: Retire in {best_retire_year} (age {best_age_str})", key="apply_retire"):
-            delta = best_retire_year - retire_year
-            st.session_state["retire_year"] = best_retire_year
-            st.session_state["h_age_at_retire"] = h_age_at_retire + delta
-            st.session_state["w_age_at_retire"] = w_age_at_retire + delta
-            st.rerun()
+    safe_scenarios = [r for r in retire_summary_rows if r[t["retire_col_confidence"]] >= 90]
+    current_row = next((r for r in retire_summary_rows if r[t["retire_col_year"]] == retire_year), None)
+    cur_conf = current_row[t["retire_col_confidence"]] if current_row else 0
 
+    if income_gap > 0:
+        gap_text = f"Annual expense **\\${annual_expense:,.0f}** − passive income **\\${passive_total:,.0f}** = **\\${income_gap:,.0f}/yr from savings** (\\${annual_expense - passive_pre_ss:,.0f}/yr before SS starts)."
+    else:
+        gap_text = f"Annual expense **\\${annual_expense:,.0f}** is fully covered by passive income **\\${passive_total:,.0f}** — surplus of **\\${-income_gap:,.0f}/yr** after SS starts."
+
+    if safe_scenarios:
+        earliest_safe = min(safe_scenarios, key=lambda r: r[t["retire_col_year"]])
+        earliest_year = earliest_safe[t["retire_col_year"]]
+        earliest_age = earliest_safe[t["retire_col_age"]]
+        confidence_val = earliest_safe[t["retire_col_confidence"]]
+        retire_text = f"You can afford to retire as early as **{earliest_year}** (age {earliest_age}) with **{confidence_val:.0f}% confidence** your money lasts through {end_year}. Your current plan (retire {retire_year}) has **{cur_conf:.0f}% confidence**."
+        st.success(f"**{t['retire_insight']}:** {gap_text}\n\n{retire_text}")
+    else:
+        best = max(retire_summary_rows, key=lambda r: r[t["retire_col_confidence"]])
+        retire_text = f"No tested retirement year achieves 90% confidence. The best is **{best[t['retire_col_year']]}** (age {best[t['retire_col_age']]}) at **{best[t['retire_col_confidence']]:.0f}% confidence**. Consider reducing expenses or delaying retirement further."
+        st.warning(f"**{t['retire_insight']}:** {gap_text}\n\n{retire_text}")
+
+    if safe_scenarios:
+        if earliest_year != retire_year:
+            if st.button(f"Apply: Retire in {earliest_year} (age {earliest_age})", key="apply_retire"):
+                delta = earliest_year - retire_year
+                st.session_state["retire_year"] = earliest_year
+                st.session_state["h_age_at_retire"] = h_age_at_retire + delta
+                st.session_state["w_age_at_retire"] = w_age_at_retire + delta
+                st.rerun()
+
+    # --- Charts ---
     st.divider()
+
+    # Income vs Expense over time
+    gap_chart_data = []
+    for ry in retire_test_years:
+        years_delta = ry - retire_year
+        test_h_age = h_age_at_retire + years_delta
+        sim_horizon = end_year - ry
+        if sim_horizon < 5:
+            continue
+        label = f"{ry} (age {test_h_age})"
+        for yr_idx in range(sim_horizon):
+            year = ry + yr_idx
+            inf_factor = (1 + inflation_rate) ** yr_idx
+            yr_expense = annual_expense * inf_factor
+            h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
+            w_ss = (ss_w_monthly * 12 * inf_factor) if year >= ss_w_start else 0
+            yr_income = (taxable_div_in + muni_int_in + annual_ltcg) * inf_factor + h_ss + w_ss
+            gap_chart_data.append({
+                "Year": year,
+                "Scenario": label,
+                "Expense": yr_expense,
+                "Passive Income": yr_income,
+                "Gap (from savings)": max(0, yr_expense - yr_income),
+            })
+
+    df_gap = pd.DataFrame(gap_chart_data)
+    current_label = f"{retire_year} (age {h_age_at_retire})"
+    df_gap_current = df_gap[df_gap["Scenario"] == current_label].copy()
+
+    if not df_gap_current.empty:
+        st.subheader(t["gap_chart_h"])
+        st.caption(t["gap_chart_desc"])
+        gap_melted = df_gap_current.melt(
+            id_vars=["Year"],
+            value_vars=["Expense", "Passive Income", "Gap (from savings)"],
+            var_name="Category", value_name="Amount"
+        )
+        gap_line_chart = alt.Chart(gap_melted).mark_line(strokeWidth=2.5).encode(
+            x=alt.X("Year:Q", axis=alt.Axis(format="d")),
+            y=alt.Y("Amount:Q", title="Annual Amount ($)"),
+            color=alt.Color("Category:N", scale=alt.Scale(
+                domain=["Expense", "Passive Income", "Gap (from savings)"],
+                range=["#e74c3c", "#2ecc71", "#f39c12"]
+            )),
+            strokeDash=alt.StrokeDash("Category:N", scale=alt.Scale(
+                domain=["Expense", "Passive Income", "Gap (from savings)"],
+                range=[[1, 0], [1, 0], [5, 5]]
+            )),
+            tooltip=[
+                alt.Tooltip("Year:Q", format="d"),
+                alt.Tooltip("Category:N"),
+                alt.Tooltip("Amount:Q", format="$,.0f"),
+            ]
+        )
+        st.altair_chart(gap_line_chart, width='stretch')
+
+    # Confidence bar chart
     st.subheader(t["retire_chart_h"])
     st.caption(t["retire_chart_desc"])
-    df_retire_chart = pd.DataFrame(retire_chart_data)
 
-    highlight_label = f"{retire_year} (age {h_age_at_retire}) {t['retire_current']}"
-
-    nearest = alt.selection_point(nearest=True, on="pointerover", fields=["Year"], empty=False)
-
-    base = alt.Chart(df_retire_chart).encode(
-        x=alt.X('Year:Q', title="Year", axis=alt.Axis(format='d')),
-        y=alt.Y('Expected Net Worth:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
-        color=alt.Color('Scenario:N', legend=alt.Legend(title="Retirement Year")),
+    df_retire_chart = pd.DataFrame(retire_summary_rows)
+    conf_col = t["retire_col_confidence"]
+    df_retire_chart["_risk_level"] = df_retire_chart[conf_col].apply(
+        lambda c: "Safe (≥90%)" if c >= 90 else ("Moderate (75-89%)" if c >= 75 else "At Risk (<75%)")
     )
-
-    lines = base.mark_line(strokeWidth=2.5).encode(
-        strokeDash=alt.condition(
-            alt.datum.Scenario == highlight_label,
-            alt.value([1, 0]),
-            alt.value([5, 5])
-        ),
-        opacity=alt.condition(
-            alt.datum.Scenario == highlight_label,
-            alt.value(1.0),
-            alt.value(0.7)
-        ),
-    )
-
-    selectors = alt.Chart(df_retire_chart).mark_point(size=80, filled=True).encode(
-        x='Year:Q',
-        opacity=alt.value(0),
-    ).add_params(nearest)
-
-    points = base.mark_point(size=60, filled=True).encode(
-        opacity=alt.condition(nearest, alt.value(1), alt.value(0)),
+    bar_chart = alt.Chart(df_retire_chart).mark_bar(
+        cornerRadiusTopLeft=4, cornerRadiusTopRight=4
+    ).encode(
+        x=alt.X(f'{t["retire_col_year"]}:O', title="Retirement Year"),
+        y=alt.Y(f'{conf_col}:Q', title="Confidence (%)", scale=alt.Scale(domain=[0, 100])),
+        color=alt.Color("_risk_level:N", scale=alt.Scale(
+            domain=["Safe (≥90%)", "Moderate (75-89%)", "At Risk (<75%)"],
+            range=["#2ecc71", "#f39c12", "#e74c3c"]
+        ), legend=alt.Legend(title="Risk Level")),
         tooltip=[
-            alt.Tooltip('Scenario:N', title="Scenario"),
-            alt.Tooltip('Year:Q', format='d', title="Year"),
-            alt.Tooltip('Expected Net Worth:Q', format='$,.0f', title="Net Worth"),
+            alt.Tooltip(f'{t["retire_col_year"]}:O', title="Retire Year"),
+            alt.Tooltip(f'{t["retire_col_age"]}:N', title="Age"),
+            alt.Tooltip(f'{conf_col}:Q', format='.0f', title="Confidence (%)"),
+            alt.Tooltip(f'{t["retire_col_nw_90"]}:Q', format='$,.0f', title="Final NW (90% conf)"),
+            alt.Tooltip(f'{t["retire_col_nw_50"]}:Q', format='$,.0f', title="Final NW (50% conf)"),
         ]
     )
 
-    vrule = alt.Chart(df_retire_chart).mark_rule(color='gray', strokeDash=[3, 3]).encode(
-        x='Year:Q',
-        opacity=alt.condition(nearest, alt.value(0.6), alt.value(0)),
-    )
+    threshold_line = alt.Chart(pd.DataFrame({"y": [90]})).mark_rule(
+        color="#2ecc71", strokeDash=[5, 5], strokeWidth=2
+    ).encode(y="y:Q")
 
-    st.altair_chart(alt.layer(lines, selectors, points, vrule), width='stretch')
+    st.altair_chart(bar_chart + threshold_line, width='stretch')
 
     st.subheader(t["retire_table_h"])
     df_retire_summary = pd.DataFrame(retire_summary_rows)
     st.dataframe(
         df_retire_summary.style.format({
-            "Assets at Retirement": "${:,.0f}",
-            t["retire_col_final_nw"]: "${:,.0f}",
-            t["retire_col_total_tax"]: "${:,.0f}",
+            t["retire_col_confidence"]: "{:.0f}%",
+            t["retire_col_nw_90"]: "${:,.0f}",
+            t["retire_col_nw_75"]: "${:,.0f}",
+            t["retire_col_nw_50"]: "${:,.0f}",
         }),
         width='stretch',
         hide_index=True
