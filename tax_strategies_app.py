@@ -563,8 +563,8 @@ def calculate_comprehensive_tax(ordinary_taxable, qd_ltcg_total, magi, inf_facto
         
     return ord_tax + ltcg_tax + tax_niit
 
-def get_rmd_divisor(age):
-    if age < 73: return 0.0
+def get_rmd_divisor(age, rmd_start_age=73):
+    if age < rmd_start_age: return 0.0
     table = {
         73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,
         80: 20.2, 81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2,
@@ -773,8 +773,8 @@ def calculate_roadmap(
             ev.append(f"{t_internal['event_roth_stop']} ({stop_reason})")
             conversion_already_stopped = True
 
-        divisor_h = get_rmd_divisor(age_h)
-        divisor_w = get_rmd_divisor(age_w)
+        divisor_h = get_rmd_divisor(age_h, rmd_age_h)
+        divisor_w = get_rmd_divisor(age_w, rmd_age_w)
         rmd_h = (cur_ira_h / divisor_h) if divisor_h > 0 else 0
         rmd_w = (cur_ira_w / divisor_w) if divisor_w > 0 else 0
         total_rmd = rmd_h + rmd_w
