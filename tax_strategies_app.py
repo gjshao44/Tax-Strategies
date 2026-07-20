@@ -1405,8 +1405,10 @@ with tab_roadmap:
     nw_gain_vs_idle = nw_strat - nw_base
     if nw_gain_vs_idle > 0:
         st.success(f"**Your active strategy adds {nw_gain_vs_idle:,.0f} in expected net worth** vs. doing nothing over {sim_years} years. Final expected NW: {final_nw_active:,.0f}. Total tax: {total_tax_paid:,.0f}.")
-    else:
+    elif nw_gain_vs_idle < 0:
         st.warning(f"**Your current settings underperform idle** by {-nw_gain_vs_idle:,.0f}. Consider adjusting Roth conversion or capital gains harvesting in earlier tabs.")
+    elif nw_gain_vs_idle == 0:
+        st.warning(f"**Your current settings is the same as idle**. Consider adjusting Roth conversion or capital gains harvesting in earlier tabs.")
 
     # --- OPTIMIZATION SUMMARY: surface each tab's recommendation ---
     st.divider()
