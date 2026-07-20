@@ -179,7 +179,12 @@ def calculate_roadmap(
             if age_h >= 65: extra_deduct += 1950 
         
         deduct = (base_deduct + extra_deduct) * inf_factor
-        ord_taxable = max(0, ordinary_gross - deduct)
+        
+        num_seniors_over_65 = (1 if age_h >= 65 else 0) + (1 if age_w >= 65 else 0)
+        obbba_deduct = calculate_obbba_senior_deduction(magi, tax_status, num_seniors_over_65, year)
+        
+        total_tax_deductions = deduct + obbba_deduct
+        ord_taxable = max(0.0, ordinary_gross - total_tax_deductions)
         
         fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status, i)
         
@@ -308,6 +313,33 @@ def calculate_roadmap(
             "Expected Net Worth": total_nw * joint_survival,
             "IRMAA": "✅ Safe" if irmaa_tier == 0 else f"🚩 Tier {irmaa_tier}",
             "irmaa_tier": irmaa_tier,
-            "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd
+            "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd,
+            "Fed OBBBA": obbba_deduct
         })
     return pd.DataFrame(rows)
+
+def calculate_obbba_senior_deduction(magi, filing_status, num_seniors_over_65, year):
+    """Calculates the phased-out OBBBA Senior Tax Deduction (temporary 2025-2028)."""
+    if year > 2028:
+        return 0.0  # Sunsets after 2028
+    if num_seniors_over_65 == 0 or filing_status == "MFS":
+        return 0.0
+        
+    if filing_status == "MFJ":
+        threshold = 150000.0
+    elif filing_status in ["Single", "HOH"]:
+        threshold = 75000.0
+        num_seniors_over_65 = min(num_seniors_over_65, 1)
+    else:
+        return 0.0
+
+    excess_magi = max(0.0, magi - threshold)
+    reduction_per_person = excess_magi * 0.06
+    
+    total_deduction = 0.0
+    for _ in range(num_seniors_over_65):
+        person_deduction = max(0.0, 6000.0 - reduction_per_person)
+        total_deduction += person_deduction
+        
+    return round(total_deduction, 2)
+

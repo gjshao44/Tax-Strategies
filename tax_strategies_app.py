@@ -38,7 +38,11 @@ defaults = {
     "lab_max_irmaa" : 5,
     "sim_years" : 25,
     "muni_yield_slider" : 4.0, 
-    "taxable_yield_slider" : 5.0
+    "taxable_yield_slider" : 5.0,
+    "taxable_div_in": 0,
+    "muni_int_in" : 0,
+    "annual_ltcg": 0
+
 }
 
 for key, default_value in defaults.items():
@@ -91,46 +95,40 @@ with st.sidebar:
     growth_profile = gp_keys[gp_labels.index(gp_selected_label)]
 
     st.header(t["sidebar_cash"])
-    working_salary = st.number_input("Annual Working Salary ($)", step=10000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.")
-    annual_expense = st.number_input("Annual Living Expense (Today's $)")
+    working_salary = st.number_input("Annual Working Salary ($)", step=1000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.")
+    annual_expense = st.number_input("Annual Living Expense (Today's $)", step=1000, key="annual_expense")
     qd_perc_raw = st.slider(t["qd_ratio"], 0, 100)
     qd_perc = qd_perc_raw / 100
 
     st.header("📥 Passive Income (Retirement)")
-    if "taxable_div_in" not in st.session_state:
-        st.session_state["taxable_div_in"] = 0
-    if "muni_int_in" not in st.session_state:
-        st.session_state["muni_int_in"] = 0
-    if "annual_ltcg" not in st.session_state:
-        st.session_state["annual_ltcg"] = 0
     st.number_input("Annual Taxable Dividends ($)", step=1000,key="taxable_div_in", help="Dividend income from taxable brokerage accounts during retirement.")
     taxable_div_in = st.session_state["taxable_div_in"]
     st.number_input("Annual Tax-Free Muni Interest ($)", step=1000,key="muni_int_in", help="Municipal bond interest income (tax-exempt).")
     muni_int_in = st.session_state["muni_int_in"]
     annual_ltcg = st.number_input("Annual Capital Gains Realized ($)", step=1000, key="annual_ltcg", help="Expected annual long-term capital gains from brokerage account sales.")
     ss_h_monthly = st.number_input("Husband SS Monthly ($)", step=100, help="Estimated Social Security monthly benefit.", key="ss_h_monthly")
-    ss_h_start = st.number_input("Husband SS Start Year", key="ss_h_start")
+    ss_h_start = st.number_input("Husband SS Start Year", step=1, key="ss_h_start")
     ss_w_monthly = st.number_input("Wife SS Monthly ($)", step=100, help="Estimated Social Security monthly benefit.", key="ss_w_monthly")
-    ss_w_start = st.number_input("Wife SS Start Year", key="ss_w_start")
+    ss_w_start = st.number_input("Wife SS Start Year", step=1, key="ss_w_start")
     _total_passive = taxable_div_in + muni_int_in + annual_ltcg + (ss_h_monthly + ss_w_monthly) * 12
     st.caption(f"**Total passive income (at full SS): ${_total_passive:,.0f}/yr**")
 
     with st.expander(t["sidebar_timeline"], expanded=False):
-        retire_year = st.number_input("Full Retirement Year")
-        h_age_at_retire = st.number_input(f"Husband Age in {retire_year}")
-        w_age_at_retire = st.number_input(f"Wife Age in {retire_year}")
+        retire_year = st.number_input("Full Retirement Year", step=1, key="retire_year")
+        h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", step=1, key="h_age_at_retire")
+        w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", step=1, key="w_age_at_retire")
 
     with st.expander(t["sidebar_assets"], expanded=False):
-        ira_h_init = st.number_input("Husband IRA Balance ($)")
-        ira_w_init = st.number_input("Wife IRA Balance ($)")
-        roth_init = st.number_input("Roth IRA Balance ($)")
-        brokerage_init = st.number_input("Taxable Brokerage Balance ($)")
+        ira_h_init = st.number_input("Husband IRA Balance ($)",step=1000, key="ira_h_init")
+        ira_w_init = st.number_input("Wife IRA Balance ($)",step=1000, key="ira_w_init")
+        roth_init = st.number_input("Roth IRA Balance ($)",step=1000, key="roth_init")
+        brokerage_init = st.number_input("Taxable Brokerage Balance ($)",step=1000, key="brokerage_init")
 
     with st.expander(t["sidebar_growth"], expanded=False):
-        ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0)
-        roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0)
-        broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0)
-        inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0)
+        ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, step=0.1, key="ira_growth_raw")
+        roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, step=0.1, key="roth_growth_raw")
+        broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, step=0.1, key="broker_growth_raw")
+        inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, step=0.1, key="inflation_rate_raw")
         inflation_rate = inflation_rate_raw / 100
 
     gp_shift = GROWTH_PROFILE_PARAMS[growth_profile]["shift"]
@@ -1607,12 +1605,12 @@ with tab_roadmap:
             "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "INPUT: RMDs": t["col_rmd"], "OUT: MAGI": t["col_magi"],
             "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"],
             "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
-            "🚨 Important Events": t["col_events"]
+            "🚨 Important Events": t["col_events"], "Fed OBBBA":  t["col_obbba"]
         }
 
         if show_all_cols:
-            display_cols = ['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
-            fmt = {t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
+            display_cols = ['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'Fed OBBBA', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
+            fmt = {t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_obbba"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
         else:
             display_cols = ['Year', 'Ages', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: Fed Tax', 'raw_outflow', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
             fmt = {t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
