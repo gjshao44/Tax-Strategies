@@ -106,7 +106,7 @@ def calculate_roadmap(
 
     sim_conv_stop_age = conv_stop_age_override if conv_stop_age_override is not None else min(rmd_age_h, rmd_age_w)
 
-    for i in range(sim_horizon):
+    for i in range(int(sim_horizon)):
         year = retire_year + i
         age_h, age_w = h_age_at_retire + i, w_age_at_retire + i
         inf_factor = (1 + inflation_rate) ** i

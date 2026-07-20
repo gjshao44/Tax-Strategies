@@ -8,6 +8,48 @@ from config import LANG_MAP
 
 st.set_page_config(page_title="Retirement Tax Strategy Planner", layout="wide")
 
+# Place this at the very top of your app
+defaults = {
+    "ss_h_monthly": 4000,
+    "ss_h_start": 2029,
+    "ss_w_monthly": 3000,
+    "ss_w_start": 2029,
+    "legacy_weight": 0.8,
+    "working_salary": 200000,
+    "annual_expense": 100000,
+    "qd_perc_raw" : 80,
+    "retire_year" : 2026,
+    "h_age_at_retire" : 64,
+    "w_age_at_retire" : 64,
+    "ira_h_init" : 1500000,
+    "ira_w_init" : 10000,
+    "roth_init" : 100000,
+    "brokerage_init" : 1000000,
+    "ira_growth_raw" : 4.0,
+    "roth_growth_raw" : 5.0,
+    "broker_growth_raw" : 3.0,
+    "inflation_rate_raw" : 2.5,
+    "ss_est_age_h" : 67,
+    "ss_h_monthly" : 4000,
+    "ss_est_age_w" : 67,
+    "ss_w_monthly" : 3000,
+    "annual_401k" : 23500,
+    "annual_saving_rate" : 30,
+    "lab_max_irmaa" : 5,
+    "sim_years" : 25,
+    "muni_yield_slider" : 4.0, 
+    "taxable_yield_slider" : 5.0
+}
+
+for key, default_value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = default_value
+
+# Then set the specific derived ones manually
+if "ss_est_amt_h" not in st.session_state:
+    st.session_state["ss_est_amt_h"] = st.session_state["ss_h_monthly"]
+if "ss_est_amt_q" not in st.session_state:
+    st.session_state["ss_est_amt_w"] = st.session_state["ss_w_monthly"]
 
 GROWTH_PROFILE_PARAMS = {
     "ultra_conservative": {"shift": -4.0, "stddev": 3.0},
@@ -31,8 +73,8 @@ with st.sidebar:
     saved_status = st.session_state.get("tax_status", "MFJ")
     status_idx = status_options.index(saved_status) if saved_status in status_options else 0
     tax_status = st.selectbox(t["filing_status"], status_options, index=status_idx)
-    sim_years = st.slider("Simulation Horizon (Years)", 20, 40, value=int(st.session_state.get("sim_years", 25)))
-    roth_conv = st.slider("Annual Roth Conversion ($)", 0, 200000, step=5000, key="roth_conv")
+    sim_years = st.slider("Simulation Horizon (Years)", 20, 40)
+    st.slider("Annual Roth Conversion ($)", 0, 200000, step=5000, key="roth_conv")
     ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
     ws_keys = list(ws_map.keys())
     ws_labels = list(ws_map.values())
@@ -49,9 +91,9 @@ with st.sidebar:
     growth_profile = gp_keys[gp_labels.index(gp_selected_label)]
 
     st.header(t["sidebar_cash"])
-    working_salary = st.number_input("Annual Working Salary ($)", value=int(st.session_state.get("working_salary", 200000)), step=10000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.")
-    annual_expense = st.number_input("Annual Living Expense (Today's $)", value=int(st.session_state.get("annual_expense", 100000)))
-    qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, value=int(st.session_state.get("qd_perc_raw", 80)))
+    working_salary = st.number_input("Annual Working Salary ($)", step=10000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.")
+    annual_expense = st.number_input("Annual Living Expense (Today's $)")
+    qd_perc_raw = st.slider(t["qd_ratio"], 0, 100)
     qd_perc = qd_perc_raw / 100
 
     st.header("📥 Passive Income (Retirement)")
@@ -66,29 +108,29 @@ with st.sidebar:
     st.number_input("Annual Tax-Free Muni Interest ($)", step=1000,key="muni_int_in", help="Municipal bond interest income (tax-exempt).")
     muni_int_in = st.session_state["muni_int_in"]
     annual_ltcg = st.number_input("Annual Capital Gains Realized ($)", step=1000, key="annual_ltcg", help="Expected annual long-term capital gains from brokerage account sales.")
-    ss_h_monthly = st.number_input("Husband SS Monthly ($)", value=int(st.session_state.get("ss_h_monthly", 4000)), step=100, help="Estimated Social Security monthly benefit.", key="ss_h_monthly")
-    ss_h_start = st.number_input("Husband SS Start Year", value=int(st.session_state.get("ss_h_start", 2029)), key="ss_h_start")
-    ss_w_monthly = st.number_input("Wife SS Monthly ($)", value=int(st.session_state.get("ss_w_monthly", 3000)), step=100, help="Estimated Social Security monthly benefit.", key="ss_w_monthly")
-    ss_w_start = st.number_input("Wife SS Start Year", value=int(st.session_state.get("ss_w_start", 2029)), key="ss_w_start")
+    ss_h_monthly = st.number_input("Husband SS Monthly ($)", step=100, help="Estimated Social Security monthly benefit.", key="ss_h_monthly")
+    ss_h_start = st.number_input("Husband SS Start Year", key="ss_h_start")
+    ss_w_monthly = st.number_input("Wife SS Monthly ($)", step=100, help="Estimated Social Security monthly benefit.", key="ss_w_monthly")
+    ss_w_start = st.number_input("Wife SS Start Year", key="ss_w_start")
     _total_passive = taxable_div_in + muni_int_in + annual_ltcg + (ss_h_monthly + ss_w_monthly) * 12
     st.caption(f"**Total passive income (at full SS): ${_total_passive:,.0f}/yr**")
 
     with st.expander(t["sidebar_timeline"], expanded=False):
-        retire_year = st.number_input("Full Retirement Year", value=int(st.session_state.get("retire_year", 2026)))
-        h_age_at_retire = st.number_input(f"Husband Age in {retire_year}", value=int(st.session_state.get("h_age_at_retire", 64)))
-        w_age_at_retire = st.number_input(f"Wife Age in {retire_year}", value=int(st.session_state.get("w_age_at_retire", 64)))
+        retire_year = st.number_input("Full Retirement Year")
+        h_age_at_retire = st.number_input(f"Husband Age in {retire_year}")
+        w_age_at_retire = st.number_input(f"Wife Age in {retire_year}")
 
     with st.expander(t["sidebar_assets"], expanded=False):
-        ira_h_init = st.number_input("Husband IRA Balance ($)", value=int(st.session_state.get("ira_h_init", 1500000)))
-        ira_w_init = st.number_input("Wife IRA Balance ($)", value=int(st.session_state.get("ira_w_init", 10000)))
-        roth_init = st.number_input("Roth IRA Balance ($)", value=int(st.session_state.get("roth_init", 100000)))
-        brokerage_init = st.number_input("Taxable Brokerage Balance ($)", value=int(st.session_state.get("brokerage_init", 1000000)))
+        ira_h_init = st.number_input("Husband IRA Balance ($)")
+        ira_w_init = st.number_input("Wife IRA Balance ($)")
+        roth_init = st.number_input("Roth IRA Balance ($)")
+        brokerage_init = st.number_input("Taxable Brokerage Balance ($)")
 
     with st.expander(t["sidebar_growth"], expanded=False):
-        ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("ira_growth_raw", 4.0)))
-        roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("roth_growth_raw", 5.0)))
-        broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0, value=float(st.session_state.get("broker_growth_raw", 3.0)))
-        inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0, value=float(st.session_state.get("inflation_rate_raw", 2.5)))
+        ira_growth_raw = st.slider("IRA Growth Rate (%)", 1.0, 10.0)
+        roth_growth_raw = st.slider("Roth Growth Rate (%)", 1.0, 10.0)
+        broker_growth_raw = st.slider("Brokerage Growth Rate (%)", 1.0, 10.0)
+        inflation_rate_raw = st.slider("Inflation Rate (%)", 0.0, 5.0)
         inflation_rate = inflation_rate_raw / 100
 
     gp_shift = GROWTH_PROFILE_PARAMS[growth_profile]["shift"]
@@ -189,17 +231,17 @@ def run_monte_carlo(core_args, profile_key, ira_growth_raw, roth_growth_raw, bro
     horizon = core_args.get("horizon_override") or core_args["sim_years"]
     rng = np.random.default_rng(seed)
     all_nw = np.zeros((n_sims, horizon))
-    for s in range(n_sims):
-        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, horizon))
-        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, horizon))
-        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, horizon))
+    for s in range(int(n_sims)):
+        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, int(horizon)))
+        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, int(horizon)))
+        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, int(horizon)))
         gs = (ira_seq, roth_seq, broker_seq)
         df_sim = calculate_roadmap(
             **{**core_args, "ira_growth": mean_ira, "roth_growth": mean_roth, "broker_growth": mean_broker},
             growth_sequence=gs
         )
         all_nw[s] = df_sim["Expected Net Worth"].values
-    years = list(range(core_args["retire_year"], core_args["retire_year"] + horizon))
+    years = list(range(int(core_args["retire_year"]), int(core_args["retire_year"]) + int(horizon)))
     p10 = np.percentile(all_nw, 10, axis=0)
     p50 = np.percentile(all_nw, 50, axis=0)
     p90 = np.percentile(all_nw, 90, axis=0)
@@ -216,10 +258,10 @@ def run_retirement_confidence(core_args, ira_growth_raw, roth_growth_raw, broker
     rng = np.random.default_rng(seed)
     final_nw = np.zeros(n_sims)
     money_lasts_count = 0
-    for s in range(n_sims):
-        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, horizon))
-        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, horizon))
-        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, horizon))
+    for s in range(int(n_sims)):
+        ira_seq = tuple(float(x) for x in rng.normal(mean_ira, stddev, int(horizon)))
+        roth_seq = tuple(float(x) for x in rng.normal(mean_roth, stddev, int(horizon)))
+        broker_seq = tuple(float(x) for x in rng.normal(mean_broker, stddev, int(horizon)))
         gs = (ira_seq, roth_seq, broker_seq)
         df_sim = calculate_roadmap(
             **{**core_args, "ira_growth": mean_ira, "roth_growth": mean_roth, "broker_growth": mean_broker},
@@ -242,7 +284,7 @@ st.title(t["title"])
 core_args = {
     "ira_h_init": ira_h_init, "ira_w_init": ira_w_init, "roth_init": roth_init, "brokerage_init": brokerage_init,
     "retire_year": retire_year, "sim_years": sim_years, "h_age_at_retire": h_age_at_retire, "w_age_at_retire": w_age_at_retire,
-    "tax_status": tax_status, "roth_conv": roth_conv, "annual_ltcg": annual_ltcg, "annual_expense": annual_expense, "qd_perc": qd_perc,
+    "tax_status": tax_status, "roth_conv": st.session_state.get("roth_conv", 0), "annual_ltcg": annual_ltcg, "annual_expense": annual_expense, "qd_perc": qd_perc,
     "taxable_div_in": taxable_div_in, "muni_int_in": muni_int_in, "last_salary": working_salary,
     "ss_h_monthly": ss_h_monthly, "ss_h_start": ss_h_start, "ss_w_monthly": ss_w_monthly, "ss_w_start": ss_w_start,
     "ira_growth": ira_growth, "roth_growth": roth_growth, "broker_growth": broker_growth, "inflation_rate": inflation_rate,
@@ -266,7 +308,6 @@ with tab_retire:
         with col_r1:
             annual_401k = st.number_input(
                 "Annual 401k Contribution ($)",
-                value=int(st.session_state.get("annual_401k", 23500)),
                 step=1000,
                 help="How much you contribute to 401k/IRA per year while working.",
                 key="annual_401k"
@@ -275,14 +316,13 @@ with tab_retire:
             annual_saving_rate = st.slider(
                 "Annual Savings Rate (%)",
                 min_value=10, max_value=60,
-                value=int(st.session_state.get("annual_saving_rate", 30)),
                 step=5,
                 help="Total % of salary saved (including 401k). Remainder after 401k goes to brokerage.",
                 key="annual_saving_rate"
             )
 
     end_year = retire_year + sim_years
-    retire_test_years = list(range(retire_year - 1, retire_year + 5))
+    retire_test_years = list(range(int(retire_year) - 1, int(retire_year) + 5))
     retire_summary_rows = []
 
     with st.spinner("Running Monte Carlo simulations for each retirement year..."):
@@ -302,12 +342,12 @@ with tab_retire:
             if years_delta > 0:
                 annual_total_saving = working_salary * (annual_saving_rate / 100)
                 annual_to_broker = max(0, annual_total_saving - annual_401k)
-                for yr_offset in range(years_delta):
+                for yr_offset in range(int(years_delta)):
                     test_ira_h = test_ira_h * (1 + ira_growth) + annual_401k
                     test_broker = test_broker * (1 + broker_growth) + annual_to_broker
                     test_roth = test_roth * (1 + roth_growth)
             elif years_delta < 0:
-                for yr_offset in range(abs(years_delta)):
+                for yr_offset in range(abs(int(years_delta))):
                     test_ira_h = test_ira_h / (1 + ira_growth)
                     test_broker = test_broker / (1 + broker_growth)
                     test_roth = test_roth / (1 + roth_growth)
@@ -335,7 +375,7 @@ with tab_retire:
                 t["retire_col_nw_90"]: nw_90,
                 t["retire_col_nw_75"]: nw_75,
                 t["retire_col_nw_50"]: nw_50,
-                t["retire_col_working_years"]: f"{years_delta:+d}" if years_delta != 0 else "baseline",
+                t["retire_col_working_years"]: f"{int(years_delta):+d}" if years_delta != 0 else "baseline",
             })
 
     # --- Key Insight: combined income summary + retirement confidence ---
@@ -386,7 +426,7 @@ with tab_retire:
         if sim_horizon < 5:
             continue
         label = f"{ry} (age {test_h_age})"
-        for yr_idx in range(sim_horizon):
+        for yr_idx in range(int(sim_horizon)):
             year = ry + yr_idx
             inf_factor = (1 + inflation_rate) ** yr_idx
             yr_expense = annual_expense * inf_factor
@@ -487,26 +527,22 @@ with tab_ss:
     with col_s1:
         ss_est_age_h = st.number_input(
             t["ss_estimate_age_h"], min_value=62, max_value=70,
-            value=int(st.session_state.get("ss_est_age_h", 67)),
             key="ss_est_age_h"
         )
     with col_s2:
         ss_est_amt_h = st.number_input(
             t["ss_estimate_amt_h"], min_value=0, max_value=10000,
-            value=int(st.session_state.get("ss_est_amt_h", ss_h_monthly)),
             step=100,
             key="ss_est_amt_h"
         )
     with col_s3:
         ss_est_age_w = st.number_input(
             t["ss_estimate_age_w"], min_value=62, max_value=70,
-            value=int(st.session_state.get("ss_est_age_w", 67)),
             key="ss_est_age_w"
         )
     with col_s4:
         ss_est_amt_w = st.number_input(
             t["ss_estimate_amt_w"], min_value=0, max_value=10000,
-            value=int(st.session_state.get("ss_est_amt_w", ss_w_monthly)),
             step=100,
             key="ss_est_amt_w"
         )
@@ -670,7 +706,6 @@ with tab_lab:
             t["lab_pref_label"],
             min_value=0.0,
             max_value=1.0,
-            value=0.80,
             step=0.05,
             help=t["lab_pref_help"],
             key="lab_legacy_weight"
@@ -687,7 +722,6 @@ with tab_lab:
             t["lab_irmaa_label"],
             min_value=0,
             max_value=5,
-            value=5,
             step=1,
             help=t["lab_irmaa_help"],
             key="lab_max_irmaa"
@@ -701,8 +735,8 @@ with tab_lab:
             st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person**")
     mid_weight = 1.0 - legacy_weight
 
-    st.success(f"💡 **{t['lab_roth_optimum']} {best_amt_for_calc:,.0f}** (current setting: {roth_conv:,.0f})")
-    if best_amt_for_calc != roth_conv:
+    st.success(f"💡 **{t['lab_roth_optimum']} {best_amt_for_calc:,.0f}** (current setting: {st.session_state.get('roth_conv', 0):,.0f})")
+    if best_amt_for_calc != st.session_state.get('roth_conv', 0):
         if st.button(f"Apply: Set annual Roth conversion to {best_amt_for_calc:,.0f}", key="apply_roth_top"):
             st.session_state["_apply_all_pending"] = True
             st.session_state["_apply_all_values"] = {"roth_conv": int(best_amt_for_calc)}
@@ -845,7 +879,7 @@ with tab_lab:
     golden_end = min(ss_start_year_h, rmd_start_year) - 1
 
     golden_data = []
-    for yr in range(retire_year, retire_year + sim_years):
+    for yr in range(int(retire_year), int(retire_year + sim_years)):
         age_in_yr = h_age_at_retire + (yr - retire_year)
         if yr <= golden_end:
             phase = "Golden Window (low tax)"
@@ -928,9 +962,9 @@ with tab_muni:
     # --- Inputs ---
     muni_col1, muni_col2 = st.columns(2)
     with muni_col1:
-        muni_yield_pct = st.slider(t["muni_yield_label"], 2.0, 6.0, value=4.0, step=0.25, key="muni_yield_slider")
+        muni_yield_pct = st.slider(t["muni_yield_label"], 2.0, 6.0, step=0.25, key="muni_yield_slider")
     with muni_col2:
-        taxable_yield_pct = st.slider("Taxable Bond Yield (%)", 3.0, 8.0, value=5.0, step=0.25, key="taxable_yield_slider")
+        taxable_yield_pct = st.slider("Taxable Bond Yield (%)", 3.0, 8.0, step=0.25, key="taxable_yield_slider")
 
     # Calculate user's marginal bracket from year 1 of simulation
     df_yr1 = calculate_roadmap(**core_args)
@@ -1418,8 +1452,8 @@ with tab_roadmap:
     any_unapplied = False
 
     # Roth conversion (jointly optimized with other settings)
-    roth_applied = (roth_conv == best_roth_joint)
-    opt_rows.append({"Decision": "Roth Conversion", "Optimal": f"${best_roth_joint:,.0f}/yr", "Current": f"${roth_conv:,.0f}/yr", "Applied": "✅" if roth_applied else "❌"})
+    roth_applied = (st.session_state.roth_conv == best_roth_joint)
+    opt_rows.append({"Decision": "Roth Conversion", "Optimal": f"${best_roth_joint:,.0f}/yr", "Current": f"${st.session_state.roth_conv:,.0f}/yr", "Applied": "✅" if roth_applied else "❌"})
     if not roth_applied:
         any_unapplied = True
 
@@ -1596,6 +1630,22 @@ with tab_roadmap:
         st.subheader(t["use_h"])
         st.markdown(t["use_body"])
 
+# 1. Define the callback function outside of your main layout
+def process_profile_upload():
+    # Access the file directly from session_state using the widget's key
+    uploaded_file = st.session_state["profile_uploader"]
+    
+    if uploaded_file is not None:
+        try:
+            data = json.load(uploaded_file)
+            for key, value in data.items():
+                st.session_state[key] = value
+            st.toast("Profile loaded successfully!", icon="✅")
+        except Exception as e:
+            st.error(f"Error parsing JSON: {e}")
+        # Safely remove the file from session state so the widget resets
+        st.session_state.pop("profile_uploader", None)
+
 with tab_data:
     st.subheader(t["tab_data"])
     
@@ -1610,7 +1660,7 @@ with tab_data:
         "roth_init": roth_init,
         "brokerage_init": brokerage_init,
         "tax_status": tax_status,
-        "roth_conv": roth_conv,
+        "roth_conv": st.session_state.get('roth_conv', 0),
         "annual_ltcg": annual_ltcg,
         "annual_expense": annual_expense,
         "qd_perc_raw": qd_perc_raw,
@@ -1645,15 +1695,12 @@ with tab_data:
     with col_load:
         st.write("### 📂 Import Profile")
         st.caption("Upload a previously saved profile file to automatically populate all inputs.")
-        uploaded_file = st.file_uploader("Choose a profile JSON file", type=["json"])
+        #uploaded_file = st.file_uploader("Choose a profile JSON file", type=["json"])
         
-        if uploaded_file is not None:
-            try:
-                loaded_profile = json.load(uploaded_file)
-                for key, value in loaded_profile.items():
-                    st.session_state[key] = value
-                # Add a brief success message, then immediately trigger a rerun
-                st.success("✅ Profile loaded successfully! Refreshing...")
-                st.rerun()  # <--- This forces Streamlit to restart top-to-bottom with the new state            
-            except Exception as e:
-                st.error(f"Error parsing profile file: {e}")
+        # Assign a key and an on_change callback
+        st.file_uploader(
+            "Choose a profile JSON file", 
+            type=["json"], 
+            key="profile_uploader", 
+            on_change=process_profile_upload
+        )
