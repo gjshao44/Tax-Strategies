@@ -3,6 +3,7 @@ import pandas as pd
 import altair as alt
 import numpy as np
 import json
+from datetime import datetime
 from engine import calculate_roadmap, calculate_comprehensive_tax
 from config import LANG_MAP
 
@@ -61,6 +62,13 @@ GROWTH_PROFILE_PARAMS = {
     "moderate": {"shift": 0.0, "stddev": 10.0},
     "aggressive": {"shift": 2.0, "stddev": 14.0},
 }
+
+def apply_earliest_retirement(
+    target_year, h_age, w_age, age_delta
+):
+    st.session_state["retire_year"] = target_year
+    st.session_state["h_age_at_retire"] = h_age + age_delta
+    st.session_state["w_age_at_retire"] = w_age + age_delta
 
 # --- 2. SIDEBAR INPUTS ---
 if st.session_state.get("_apply_all_pending"):
@@ -320,7 +328,12 @@ with tab_retire:
             )
 
     end_year = retire_year + sim_years
-    retire_test_years = list(range(int(retire_year) - 1, int(retire_year) + 5))
+    # Get the current year dynamically
+    current_year = datetime.now().year
+    # Determine the start year: allow up to 2 years back, but strictly floor it at current_year
+    start_test_year = max(current_year, retire_year - 2)
+    end_test_year = retire_year + 5
+    retire_test_years = list(range(int(start_test_year), int(end_test_year)))
     retire_summary_rows = []
 
     with st.spinner("Running Monte Carlo simulations for each retirement year..."):
@@ -405,12 +418,18 @@ with tab_retire:
 
     if safe_scenarios:
         if earliest_year != retire_year:
-            if st.button(f"Apply: Retire in {earliest_year} (age {earliest_age})", key="apply_retire"):
-                delta = earliest_year - retire_year
-                st.session_state["retire_year"] = earliest_year
-                st.session_state["h_age_at_retire"] = h_age_at_retire + delta
-                st.session_state["w_age_at_retire"] = w_age_at_retire + delta
-                st.rerun()
+            delta = earliest_year - retire_year
+            st.button(
+                f"Apply: Retire in {earliest_year} (age {earliest_age})", 
+                key="apply_retire",
+                on_click=apply_earliest_retirement,
+                args=(
+                    earliest_year,
+                    h_age_at_retire,
+                    w_age_at_retire,
+                    delta,
+                ),
+            )
 
     # --- Charts ---
     st.divider()
