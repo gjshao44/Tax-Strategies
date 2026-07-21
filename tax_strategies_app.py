@@ -542,28 +542,31 @@ with tab_ss:
     st.markdown(f"**{t['ss_input_h']}**")
     col_s1, col_s2, col_s3, col_s4 = st.columns(4)
     with col_s1:
-        ss_est_age_h = st.number_input(
-            t["ss_estimate_age_h"], min_value=62, max_value=70,
-            key="ss_est_age_h"
+        st.metric(
+            label=t["ss_estimate_age_h"], 
+            value=st.session_state.get("ss_est_age_h", 67)
         )
     with col_s2:
-        ss_est_amt_h = st.number_input(
-            t["ss_estimate_amt_h"], min_value=0, max_value=10000,
-            step=100,
-            key="ss_est_amt_h"
+        st.metric(
+            label=t["ss_estimate_amt_h"], 
+            value=f"${st.session_state.get('ss_h_monthly', 4000):,.0f}"
         )
     with col_s3:
-        ss_est_age_w = st.number_input(
-            t["ss_estimate_age_w"], min_value=62, max_value=70,
-            key="ss_est_age_w"
+        st.metric(
+            label=t["ss_estimate_age_w"], 
+            value=st.session_state.get("ss_est_age_w", 67)
         )
     with col_s4:
-        ss_est_amt_w = st.number_input(
-            t["ss_estimate_amt_w"], min_value=0, max_value=10000,
-            step=100,
-            key="ss_est_amt_w"
+        st.metric(
+            label=t["ss_estimate_amt_w"], 
+            value=f"${st.session_state.get('ss_w_monthly', 2000):,.0f}"
         )
 
+    # Assign directly to variables for your calculations:
+    ss_est_age_h = st.session_state.get("ss_est_age_h", 67)
+    ss_est_amt_h = st.session_state.get("ss_h_monthly", 4000)
+    ss_est_age_w = st.session_state.get("ss_est_age_w", 67)
+    ss_est_amt_w = st.session_state.get("ss_w_monthly", 2000)
     birth_year_h = retire_year - h_age_at_retire
     birth_year_w = retire_year - w_age_at_retire
 
