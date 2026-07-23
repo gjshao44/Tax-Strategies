@@ -749,8 +749,8 @@ with tab_lab:
         surcharge_str = irmaa_monthly[max_irmaa_limit]
         if max_irmaa_limit == 0:
             st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person** (no extra cost)")
-        elif max_irmaa_limit == 5:
-            st.caption(f"Max Medicare surcharge: **no limit** (all tiers allowed)")
+        # elif max_irmaa_limit == 5:
+        #     st.caption(f"Max Medicare surcharge: **no limit** (all tiers allowed)")
         else:
             st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person**")
     mid_weight = 1.0 - legacy_weight
