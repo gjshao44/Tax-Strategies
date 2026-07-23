@@ -747,12 +747,7 @@ with tab_lab:
             key="lab_max_irmaa"
         )
         surcharge_str = irmaa_monthly[max_irmaa_limit]
-        if max_irmaa_limit == 0:
-            st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person** (no extra cost)")
-        # elif max_irmaa_limit == 5:
-        #     st.caption(f"Max Medicare surcharge: **no limit** (all tiers allowed)")
-        else:
-            st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person**")
+        st.caption(f"Max Medicare surcharge: **{surcharge_str}/mo per person**")
     mid_weight = 1.0 - legacy_weight
 
     st.success(f"💡 **{t['lab_roth_optimum']} {best_amt_for_calc:,.0f}** (current setting: {st.session_state.get('roth_conv', 0):,.0f})")
