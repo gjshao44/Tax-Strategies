@@ -30,10 +30,6 @@ defaults = {
     "roth_growth_raw" : 5.0,
     "broker_growth_raw" : 3.0,
     "inflation_rate_raw" : 2.5,
-    "ss_est_age_h" : 67,
-    "ss_h_monthly" : 4000,
-    "ss_est_age_w" : 67,
-    "ss_w_monthly" : 3000,
     "annual_401k" : 23500,
     "annual_saving_rate" : 30,
     "lab_max_irmaa" : 5,
@@ -49,12 +45,6 @@ defaults = {
 for key, default_value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
-
-# Then set the specific derived ones manually
-if "ss_est_amt_h" not in st.session_state:
-    st.session_state["ss_est_amt_h"] = st.session_state["ss_h_monthly"]
-if "ss_est_amt_q" not in st.session_state:
-    st.session_state["ss_est_amt_w"] = st.session_state["ss_w_monthly"]
 
 GROWTH_PROFILE_PARAMS = {
     "ultra_conservative": {"shift": -4.0, "stddev": 3.0},
@@ -539,36 +529,38 @@ with tab_ss:
     st.subheader(t["ss_h"])
     st.caption(t["ss_desc"])
 
+    birth_year_h = retire_year - h_age_at_retire
+    birth_year_w = retire_year - w_age_at_retire
+
+    # The estimate is anchored to whatever age your current SS Start Year implies,
+    # not a fixed age — so it stays consistent after Apply changes the start year.
+    ss_est_age_h = ss_h_start - birth_year_h
+    ss_est_amt_h = ss_h_monthly
+    ss_est_age_w = ss_w_start - birth_year_w
+    ss_est_amt_w = ss_w_monthly
+
     st.markdown(f"**{t['ss_input_h']}**")
     col_s1, col_s2, col_s3, col_s4 = st.columns(4)
     with col_s1:
         st.metric(
-            label=t["ss_estimate_age_h"], 
-            value=st.session_state.get("ss_est_age_h", 67)
+            label=t["ss_estimate_age_h"],
+            value=ss_est_age_h
         )
     with col_s2:
         st.metric(
-            label=t["ss_estimate_amt_h"], 
-            value=f"${st.session_state.get('ss_h_monthly', 4000):,.0f}"
+            label=t["ss_estimate_amt_h"],
+            value=f"${ss_est_amt_h:,.0f}"
         )
     with col_s3:
         st.metric(
-            label=t["ss_estimate_age_w"], 
-            value=st.session_state.get("ss_est_age_w", 67)
+            label=t["ss_estimate_age_w"],
+            value=ss_est_age_w
         )
     with col_s4:
         st.metric(
-            label=t["ss_estimate_amt_w"], 
-            value=f"${st.session_state.get('ss_w_monthly', 2000):,.0f}"
+            label=t["ss_estimate_amt_w"],
+            value=f"${ss_est_amt_w:,.0f}"
         )
-
-    # Assign directly to variables for your calculations:
-    ss_est_age_h = st.session_state.get("ss_est_age_h", 67)
-    ss_est_amt_h = st.session_state.get("ss_h_monthly", 4000)
-    ss_est_age_w = st.session_state.get("ss_est_age_w", 67)
-    ss_est_amt_w = st.session_state.get("ss_w_monthly", 2000)
-    birth_year_h = retire_year - h_age_at_retire
-    birth_year_w = retire_year - w_age_at_retire
 
     ss_strategies = [
         ("Both at 62", 62, 62),
@@ -643,10 +635,13 @@ with tab_ss:
                      and best_h_start_yr == ss_h_start and best_w_start_yr == ss_w_start)
     if not current_match:
         if st.button(f"Apply: {best_ss[t['ss_col_strategy']]} — H {best_h_monthly:,.0f}/mo at {best_h_claim}, W {best_w_monthly:,.0f}/mo at {best_w_claim}", key="apply_ss"):
-            st.session_state["ss_h_monthly"] = int(best_h_monthly)
-            st.session_state["ss_h_start"] = best_h_start_yr
-            st.session_state["ss_w_monthly"] = int(best_w_monthly)
-            st.session_state["ss_w_start"] = best_w_start_yr
+            st.session_state["_apply_all_pending"] = True
+            st.session_state["_apply_all_values"] = {
+                "ss_h_monthly": int(best_h_monthly),
+                "ss_h_start": best_h_start_yr,
+                "ss_w_monthly": int(best_w_monthly),
+                "ss_w_start": best_w_start_yr,
+            }
             st.rerun()
 
     st.divider()
