@@ -1641,10 +1641,13 @@ with tab_roadmap:
         st.markdown(t["use_body"])
 
 # 1. Define the callback function outside of your main layout
+if "profile_uploader_key" not in st.session_state:
+    st.session_state["profile_uploader_key"] = 0
+
 def process_profile_upload():
     # Access the file directly from session_state using the widget's key
-    uploaded_file = st.session_state["profile_uploader"]
-    
+    uploaded_file = st.session_state[f"profile_uploader_{st.session_state['profile_uploader_key']}"]
+
     if uploaded_file is not None:
         try:
             data = json.load(uploaded_file)
@@ -1653,8 +1656,9 @@ def process_profile_upload():
             st.toast("Profile loaded successfully!", icon="✅")
         except Exception as e:
             st.error(f"Error parsing JSON: {e}")
-        # Safely remove the file from session state so the widget resets
-        st.session_state.pop("profile_uploader", None)
+        # Bump the widget's key so Streamlit mounts a fresh, empty uploader
+        # (popping the old key from session_state doesn't clear the widget itself)
+        st.session_state["profile_uploader_key"] += 1
 
 with tab_data:
     st.subheader(t["tab_data"])
@@ -1709,8 +1713,8 @@ with tab_data:
         
         # Assign a key and an on_change callback
         st.file_uploader(
-            "Choose a profile JSON file", 
-            type=["json"], 
-            key="profile_uploader", 
+            "Choose a profile JSON file",
+            type=["json"],
+            key=f"profile_uploader_{st.session_state['profile_uploader_key']}",
             on_change=process_profile_upload
         )
