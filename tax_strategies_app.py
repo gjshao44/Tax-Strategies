@@ -75,7 +75,7 @@ with st.sidebar:
     saved_status = st.session_state.get("tax_status", "MFJ")
     status_idx = status_options.index(saved_status) if saved_status in status_options else 0
     tax_status = st.selectbox(t["filing_status"], status_options, index=status_idx)
-    sim_years = st.slider("Simulation Horizon (Years)", 20, 40)
+    sim_years = st.slider("Simulation Horizon (Years)", 20, 40, key="sim_years")
     st.slider("Annual Roth Conversion ($)", 0, 200000, step=5000, key="roth_conv")
     ws_map = {"tax_efficient": t["ws_tax_efficient"], "ira_first": t["ws_ira_first"], "roth_first": t["ws_roth_first"], "proportional": t["ws_proportional"]}
     ws_keys = list(ws_map.keys())
@@ -93,9 +93,9 @@ with st.sidebar:
     growth_profile = gp_keys[gp_labels.index(gp_selected_label)]
 
     st.header(t["sidebar_cash"])
-    working_salary = st.number_input("Annual Working Salary ($)", step=1000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.")
+    working_salary = st.number_input("Annual Working Salary ($)", step=1000, help="Your current gross salary. Applied as income in the retirement year and used for retire-timing analysis.", key="working_salary")
     annual_expense = st.number_input("Annual Living Expense (Today's $)", step=1000, key="annual_expense")
-    qd_perc_raw = st.slider(t["qd_ratio"], 0, 100)
+    qd_perc_raw = st.slider(t["qd_ratio"], 0, 100, key="qd_perc_raw")
     qd_perc = qd_perc_raw / 100
 
     st.header("📥 Passive Income (Retirement)")
