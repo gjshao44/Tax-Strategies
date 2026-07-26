@@ -37,6 +37,7 @@ defaults = {
     "muni_yield_slider" : 4.0, 
     "taxable_yield_slider" : 5.0,
     "taxable_div_in": 0,
+    "taxable_bond_in": 0,
     "muni_int_in" : 0,
     "annual_ltcg": 0
 
@@ -99,8 +100,10 @@ with st.sidebar:
     qd_perc = qd_perc_raw / 100
 
     st.header("📥 Passive Income (Retirement)")
-    st.number_input("Annual Taxable Dividends ($)", step=1000,key="taxable_div_in", help="Dividend income from taxable brokerage accounts during retirement.")
+    st.number_input("Annual Equity Dividend Income ($)", step=1000,key="taxable_div_in", help="Dividend income from stocks/funds held in a taxable brokerage account. Split between qualified/ordinary below via the Qualified Dividend % lever.")
     taxable_div_in = st.session_state["taxable_div_in"]
+    st.number_input("Annual Taxable Bond Interest ($)", step=1000, key="taxable_bond_in", help="Interest income from taxable (non-muni) bonds. Always taxed as ordinary income -- this is the bucket that can actually be swapped for munis in the Muni tab.")
+    taxable_bond_in = st.session_state["taxable_bond_in"]
     st.number_input("Annual Tax-Free Muni Interest ($)", step=1000,key="muni_int_in", help="Municipal bond interest income (tax-exempt).")
     muni_int_in = st.session_state["muni_int_in"]
     annual_ltcg = st.number_input("Annual Capital Gains Realized ($)", step=1000, key="annual_ltcg", help="Expected annual long-term capital gains from brokerage account sales.")
@@ -108,7 +111,7 @@ with st.sidebar:
     ss_h_start = st.number_input("Husband SS Start Year", step=1, key="ss_h_start")
     ss_w_monthly = st.number_input("Wife SS Monthly ($)", step=100, help="Estimated Social Security monthly benefit.", key="ss_w_monthly")
     ss_w_start = st.number_input("Wife SS Start Year", step=1, key="ss_w_start")
-    _total_passive = taxable_div_in + muni_int_in + annual_ltcg + (ss_h_monthly + ss_w_monthly) * 12
+    _total_passive = taxable_div_in + taxable_bond_in + muni_int_in + annual_ltcg + (ss_h_monthly + ss_w_monthly) * 12
     st.caption(f"**Total passive income (at full SS): ${_total_passive:,.0f}/yr**")
 
     with st.expander(t["sidebar_timeline"], expanded=False):
@@ -281,7 +284,7 @@ core_args = {
     "ira_h_init": ira_h_init, "ira_w_init": ira_w_init, "roth_init": roth_init, "brokerage_init": brokerage_init,
     "retire_year": retire_year, "sim_years": sim_years, "h_age_at_retire": h_age_at_retire, "w_age_at_retire": w_age_at_retire,
     "tax_status": tax_status, "roth_conv": st.session_state.get("roth_conv", 0), "annual_ltcg": annual_ltcg, "annual_expense": annual_expense, "qd_perc": qd_perc,
-    "taxable_div_in": taxable_div_in, "muni_int_in": muni_int_in, "last_salary": working_salary,
+    "taxable_div_in": taxable_div_in, "taxable_bond_in": taxable_bond_in, "muni_int_in": muni_int_in, "last_salary": working_salary,
     "ss_h_monthly": ss_h_monthly, "ss_h_start": ss_h_start, "ss_w_monthly": ss_w_monthly, "ss_w_start": ss_w_start,
     "ira_growth": ira_growth, "roth_growth": roth_growth, "broker_growth": broker_growth, "inflation_rate": inflation_rate,
     "lang": lang, "withdrawal_strategy": withdrawal_strategy
@@ -381,8 +384,8 @@ with tab_retire:
 
     # --- Key Insight: combined income summary + retirement confidence ---
     ss_annual = (ss_h_monthly + ss_w_monthly) * 12
-    passive_total = taxable_div_in + muni_int_in + annual_ltcg + ss_annual
-    passive_pre_ss = taxable_div_in + muni_int_in + annual_ltcg
+    passive_total = taxable_div_in + taxable_bond_in + muni_int_in + annual_ltcg + ss_annual
+    passive_pre_ss = taxable_div_in + taxable_bond_in + muni_int_in + annual_ltcg
     income_gap = annual_expense - passive_total
 
     safe_scenarios = [r for r in retire_summary_rows if r[t["retire_col_confidence"]] >= 90]
@@ -439,7 +442,7 @@ with tab_retire:
             yr_expense = annual_expense * inf_factor
             h_ss = (ss_h_monthly * 12 * inf_factor) if year >= ss_h_start else 0
             w_ss = (ss_w_monthly * 12 * inf_factor) if year >= ss_w_start else 0
-            yr_income = (taxable_div_in + muni_int_in + annual_ltcg) * inf_factor + h_ss + w_ss
+            yr_income = (taxable_div_in + taxable_bond_in + muni_int_in + annual_ltcg) * inf_factor + h_ss + w_ss
             gap_chart_data.append({
                 "Year": year,
                 "Scenario": label,
@@ -947,7 +950,7 @@ with tab_lab:
             if h_age_at_retire >= 65: extra_deduct_lab += 1950
         total_deduction = base_deduct_lab + extra_deduct_lab
 
-        other_income = taxable_div_in * (1 - qd_perc)
+        other_income = taxable_div_in * (1 - qd_perc) + taxable_bond_in
         if tax_status == "MFJ":
             brackets_display = [
                 ("0% (standard deduction)", 0, total_deduction),
@@ -994,40 +997,27 @@ with tab_muni:
     with muni_col2:
         taxable_yield_pct = st.slider("Taxable Bond Yield (%)", 3.0, 8.0, step=0.25, key="taxable_yield_slider")
 
-    # Calculate user's marginal bracket from year 1 of simulation
+    # Empirical marginal rate: bump taxable bond interest by $1,000 and measure the actual tax
+    # impact, rather than looking up an ordinary bracket. Bond interest is always ordinary income,
+    # so bumping it directly gives the true marginal rate for this specific muni-vs-taxable decision
+    # (bumping equity dividends instead would blend in the qualified-dividend preferential rate).
     df_yr1 = calculate_roadmap(**core_args)
     yr1_magi = df_yr1.iloc[0]["OUT: MAGI"]
     yr1_fed_tax = df_yr1.iloc[0]["OUT: Fed Tax"]
-    base_deduct_muni = 32200 if tax_status == "MFJ" else 16100
-    extra_deduct_muni = 0
-    if tax_status == "MFJ":
-        if h_age_at_retire >= 65: extra_deduct_muni += 1650
-        if w_age_at_retire >= 65: extra_deduct_muni += 1650
-    else:
-        if h_age_at_retire >= 65: extra_deduct_muni += 1950
-    total_deduct_muni = base_deduct_muni + extra_deduct_muni
-    yr1_ord_taxable = max(0, yr1_magi - muni_int_in - total_deduct_muni)
-
-    if tax_status == "MFJ":
-        muni_brackets = [(23200, 0.10), (94300, 0.12), (201050, 0.22), (383900, 0.24), (999999999, 0.32)]
-    else:
-        muni_brackets = [(11600, 0.10), (47150, 0.12), (100525, 0.22), (191950, 0.24), (999999999, 0.32)]
-
-    marginal_rate = 0.10
-    for limit, rate in muni_brackets:
-        if yr1_ord_taxable <= limit:
-            marginal_rate = rate
-            break
+    bump = 1000.0
+    df_yr1_bump = calculate_roadmap(**{**core_args, "taxable_bond_in": taxable_bond_in + bump})
+    yr1_fed_tax_bump = df_yr1_bump.iloc[0]["OUT: Fed Tax"]
+    marginal_rate = max(0.0, min(0.99, (yr1_fed_tax_bump - yr1_fed_tax) / bump))
 
     tey = muni_yield_pct / (1 - marginal_rate)
 
     # --- Insight + Apply ---
     st.divider()
-    st.markdown(f"**{t['muni_bracket_label']}:** {marginal_rate*100:.0f}% (based on Year 1 taxable income of {yr1_ord_taxable:,.0f})")
-    st.markdown(f"**{t['muni_tey_result']}:** {tey:.2f}% — a taxable bond must yield at least this to beat a {muni_yield_pct:.1f}% muni at your bracket.")
+    st.markdown(f"**{t['muni_bracket_label']}:** {marginal_rate*100:.1f}% (effective rate on your next dollar of taxable bond interest, which is always ordinary income)")
+    st.markdown(f"**{t['muni_tey_result']}:** {tey:.2f}% — a taxable bond must yield at least this to beat a {muni_yield_pct:.1f}% muni at your effective rate.")
 
     if tey > taxable_yield_pct:
-        st.success(f"At your {marginal_rate*100:.0f}% bracket, munis ({muni_yield_pct:.1f}%) beat taxable bonds ({taxable_yield_pct:.1f}%) after tax. TEY advantage: +{tey - taxable_yield_pct:.2f}%.")
+        st.success(f"At your {marginal_rate*100:.1f}% effective rate, munis ({muni_yield_pct:.1f}%) beat taxable bonds ({taxable_yield_pct:.1f}%) after tax. TEY advantage: +{tey - taxable_yield_pct:.2f}%.")
     else:
         st.info(f"Taxable bonds ({taxable_yield_pct:.1f}%) currently yield more than the muni TEY ({tey:.2f}%). Munis may still help if reducing MAGI avoids IRMAA.")
 
@@ -1036,15 +1026,30 @@ with tab_muni:
     st.subheader(t["muni_alloc_h"])
     st.caption(t["muni_alloc_desc"])
 
-    total_fixed_income = taxable_div_in + muni_int_in
+    # Only the bond sleeve (taxable_bond_in <-> muni_int_in) is realistically reallocatable --
+    # equity dividend income (taxable_div_in) is left untouched in every scenario below.
+    total_fixed_income = taxable_bond_in + muni_int_in
+    # Reallocating between muni/taxable should hold principal fixed and let income follow each
+    # bucket's own yield -- not shift the same income dollars between tax treatments.
+    muni_yield_frac = muni_yield_pct / 100
+    taxable_yield_frac = taxable_yield_pct / 100
+    implied_principal = (muni_int_in / muni_yield_frac if muni_yield_frac else 0) + \
+                         (taxable_bond_in / taxable_yield_frac if taxable_yield_frac else 0)
+
+    def muni_alloc_dollars(pct):
+        muni_principal = implied_principal * pct / 100
+        taxable_principal = implied_principal - muni_principal
+        test_muni = int(muni_principal * muni_yield_frac)
+        test_taxable = int(taxable_principal * taxable_yield_frac)
+        return test_muni, test_taxable
+
     alloc_scenarios = [0, 25, 50, 75, 100]
     muni_results = []
 
     for pct in alloc_scenarios:
-        test_muni = int(total_fixed_income * pct / 100)
-        test_taxable = total_fixed_income - test_muni
+        test_muni, test_taxable = muni_alloc_dollars(pct)
         df_muni_sim = calculate_roadmap(
-            **{**core_args, "muni_int_in": test_muni, "taxable_div_in": test_taxable}
+            **{**core_args, "muni_int_in": test_muni, "taxable_bond_in": test_taxable}
         )
         final_nw = df_muni_sim.iloc[-1]["Expected Net Worth"]
         total_tax = df_muni_sim["OUT: Fed Tax"].sum()
@@ -1075,13 +1080,12 @@ with tab_muni:
     current_pct = int(round(muni_int_in / max(1, total_fixed_income) * 100))
     if str(current_pct) + "%" != best_muni_pct:
         best_pct_int = int(best_muni_pct.replace("%", ""))
-        best_muni_dollar = int(total_fixed_income * best_pct_int / 100)
-        best_taxable_dollar = total_fixed_income - best_muni_dollar
-        if st.button(f"Apply: Set muni to {best_muni_dollar:,.0f} and taxable to {best_taxable_dollar:,.0f}", key="apply_muni"):
+        best_muni_dollar, best_taxable_dollar = muni_alloc_dollars(best_pct_int)
+        if st.button(f"Apply: Set muni to {best_muni_dollar:,.0f} and taxable bond to {best_taxable_dollar:,.0f}", key="apply_muni"):
             st.session_state["_apply_all_pending"] = True
             st.session_state["_apply_all_values"] = {
                 "muni_int_in": best_muni_dollar,
-                "taxable_div_in": best_taxable_dollar,
+                "taxable_bond_in": best_taxable_dollar,
             }
             st.rerun()
 
@@ -1089,10 +1093,9 @@ with tab_muni:
     st.divider()
     muni_chart_data = []
     for pct in alloc_scenarios:
-        test_muni = int(total_fixed_income * pct / 100)
-        test_taxable = total_fixed_income - test_muni
+        test_muni, test_taxable = muni_alloc_dollars(pct)
         df_muni_chart = calculate_roadmap(
-            **{**core_args, "muni_int_in": test_muni, "taxable_div_in": test_taxable}
+            **{**core_args, "muni_int_in": test_muni, "taxable_bond_in": test_taxable}
         )
         for _, row in df_muni_chart.iterrows():
             muni_chart_data.append({"Year": row["Year"], "Expected Net Worth": row["Expected Net Worth"], "Muni Allocation": f"{pct}%"})
@@ -1120,13 +1123,33 @@ with tab_muni:
     st.divider()
     st.subheader(t["muni_irmaa_h"])
     st.caption(t["muni_irmaa_desc"])
-    irmaa_threshold = 218000 if tax_status == "MFJ" else 174000
-    st.markdown(f"Your Year 1 MAGI: **{yr1_magi:,.0f}** | IRMAA threshold: **{irmaa_threshold:,.0f}**")
-    if yr1_magi > irmaa_threshold:
-        st.warning(f"Your MAGI exceeds the IRMAA threshold by {yr1_magi - irmaa_threshold:,.0f}. Note: muni interest is included in MAGI, so increasing munis will not reduce your IRMAA tier.")
+    # Tier thresholds match engine.get_irmaa_surcharge (Year 1, no inflation adjustment yet).
+    irmaa_tier_thresholds = [218000, 272000, 340000, 408000, 750000]
+    irmaa_tier_surcharge = {0: "\\$0", 1: "\\$80", 2: "\\$200", 3: "\\$320", 4: "\\$440", 5: "\\$480+"}
+    yr1_irmaa_tier = int(df_yr1.iloc[0]["irmaa_tier"])
+
+    st.markdown(f"Your Year 1 MAGI: **{yr1_magi:,.0f}** | Current IRMAA Tier: **{yr1_irmaa_tier}** ({irmaa_tier_surcharge[yr1_irmaa_tier]}/mo per person on Medicare)")
+    if yr1_irmaa_tier >= 5:
+        st.warning("You're already at the top IRMAA tier (Tier 5) -- there's no higher surcharge tier to worry about, but this is the maximum premium bracket. Note: muni interest is included in MAGI, so increasing munis will not lower your tier.")
     else:
-        headroom = irmaa_threshold - yr1_magi
-        st.success(f"You have {headroom:,.0f} of MAGI headroom before IRMAA triggers. Muni income keeps AGI lower, potentially allowing larger Roth conversions within this headroom.")
+        next_tier = yr1_irmaa_tier + 1
+        headroom = irmaa_tier_thresholds[yr1_irmaa_tier] - yr1_magi
+        if yr1_irmaa_tier == 0:
+            st.success(f"You have {headroom:,.0f} of MAGI headroom before Tier {next_tier} ({irmaa_tier_surcharge[next_tier]}/mo per person) triggers. Muni income keeps AGI lower, potentially allowing larger Roth conversions within this headroom.")
+        else:
+            st.warning(f"You're currently in Tier {yr1_irmaa_tier} ({irmaa_tier_surcharge[yr1_irmaa_tier]}/mo per person), with {headroom:,.0f} of MAGI headroom before Tier {next_tier} ({irmaa_tier_surcharge[next_tier]}/mo per person) triggers. Note: muni interest is included in MAGI, so increasing munis will not lower your current tier.")
+
+    # --- Comparison table (per-allocation MAGI/tax/NW breakdown) ---
+    st.dataframe(
+        df_muni_results.style.format({
+            t["muni_col_muni_income"]: "${:,.0f}",
+            t["muni_col_taxable_income"]: "${:,.0f}",
+            t["muni_col_final_nw"]: "${:,.0f}",
+            t["muni_col_total_tax"]: "${:,.0f}",
+            t["muni_col_magi_yr1"]: "${:,.0f}",
+        }),
+        width='stretch', hide_index=True
+    )
 
     # --- Reference table ---
     st.divider()
@@ -1140,18 +1163,6 @@ with tab_muni:
             row_data[f"{yld:.1f}% Muni"] = f"{yld / (1 - bracket):.2f}%"
         tey_rows.append(row_data)
     st.dataframe(pd.DataFrame(tey_rows), width='stretch', hide_index=True)
-
-    # --- Comparison table ---
-    st.dataframe(
-        df_muni_results.style.format({
-            t["muni_col_muni_income"]: "${:,.0f}",
-            t["muni_col_taxable_income"]: "${:,.0f}",
-            t["muni_col_final_nw"]: "${:,.0f}",
-            t["muni_col_total_tax"]: "${:,.0f}",
-            t["muni_col_magi_yr1"]: "${:,.0f}",
-        }),
-        width='stretch', hide_index=True
-    )
 
 with tab_cg:
     st.subheader(t["cg_h"])
@@ -1425,15 +1436,14 @@ with tab_roadmap:
 
     # --- 1. CALCULATE THREE SCENARIOS ---
     best_pct_int_road = int(best_muni_pct.replace("%", ""))
-    best_muni_dollar_road = int(total_fixed_income * best_pct_int_road / 100)
-    best_taxable_dollar_road = total_fixed_income - best_muni_dollar_road
+    best_muni_dollar_road, best_taxable_dollar_road = muni_alloc_dollars(best_pct_int_road)
 
     # Re-compute optimal Roth given all other optimal settings
     joint_base_args = {
         **core_args,
         "ss_h_monthly": int(best_h_monthly), "ss_h_start": best_h_start_yr,
         "ss_w_monthly": int(best_w_monthly), "ss_w_start": best_w_start_yr,
-        "muni_int_in": best_muni_dollar_road, "taxable_div_in": best_taxable_dollar_road,
+        "muni_int_in": best_muni_dollar_road, "taxable_bond_in": best_taxable_dollar_road,
         "annual_ltcg": best_cg_amt,
         "withdrawal_strategy": best_ws_key,
     }
@@ -1522,7 +1532,7 @@ with tab_roadmap:
                 "ss_w_monthly": int(best_w_monthly),
                 "ss_w_start": best_w_start_yr,
                 "muni_int_in": best_muni_dollar_road,
-                "taxable_div_in": best_taxable_dollar_road,
+                "taxable_bond_in": best_taxable_dollar_road,
                 "annual_ltcg": best_cg_amt,
                 "withdrawal_strategy": best_ws_key,
             }
@@ -1606,13 +1616,13 @@ with tab_roadmap:
     st.divider()
     st.subheader(t["summary_h"].format(sim_years=sim_years))
     total_tax = df_active["OUT: Fed Tax"].sum()
-    total_taxable_yield = df_active["raw_div"].sum() + df_active["raw_cg"].sum() + df_active["raw_rmd"].sum()
+    total_taxable_yield = df_active["raw_div"].sum() + df_active["raw_bond"].sum() + df_active["raw_cg"].sum() + df_active["raw_rmd"].sum()
     tax_per_dollar = total_tax / max(1, total_taxable_yield)
 
     summary_rows = [
         {"Type": t["acc_ira"], "Init": ira_h_init + ira_w_init, "Final": df_active.iloc[-1]['IRA Bal'], "Yield": df_active["raw_rmd"].sum(), "Liability": df_active["raw_rmd"].sum() * tax_per_dollar},
         {"Type": t["acc_roth"], "Init": roth_init, "Final": df_active.iloc[-1]['Roth Bal'], "Yield": df_active["raw_roth_yield"].sum(), "Liability": 0.0},
-        {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df_active.iloc[-1]['Brokerage'], "Yield": df_active["raw_div"].sum() + df_active["raw_cg"].sum() + df_active["raw_muni"].sum(), "Liability": (df_active["raw_div"].sum() + df_active["raw_cg"].sum()) * tax_per_dollar}
+        {"Type": t["acc_broker"], "Init": brokerage_init, "Final": df_active.iloc[-1]['Brokerage'], "Yield": df_active["raw_div"].sum() + df_active["raw_bond"].sum() + df_active["raw_cg"].sum() + df_active["raw_muni"].sum(), "Liability": (df_active["raw_div"].sum() + df_active["raw_bond"].sum() + df_active["raw_cg"].sum()) * tax_per_dollar}
     ]
     df_sum_table = pd.DataFrame(summary_rows)
     totals_row = {"Type": t["total_label"], "Init": df_sum_table["Init"].sum(), "Final": df_sum_table["Final"].sum(), "Yield": df_sum_table["Yield"].sum(), "Liability": df_sum_table["Liability"].sum()}
@@ -1631,7 +1641,7 @@ with tab_roadmap:
         show_all_cols = st.checkbox("Show all columns", value=False, key="roadmap_all_cols")
 
         col_map = {
-            "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_muni": t["col_muni"],
+            "INPUT: SS": t["col_ss"], "raw_div": t["col_div"], "raw_bond": t["col_bond"], "raw_muni": t["col_muni"],
             "raw_cg": t["col_cg"], "LEVER: Roth": t["col_roth"], "INPUT: RMDs": t["col_rmd"], "OUT: MAGI": t["col_magi"],
             "OUT: Fed Tax": t["col_tax"], "raw_outflow": t["col_outflow"],
             "Total Net Worth": t["col_nw"], "Expected Net Worth": t["col_ex_nw"],
@@ -1639,8 +1649,8 @@ with tab_roadmap:
         }
 
         if show_all_cols:
-            display_cols = ['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'Fed OBBBA', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
-            fmt = {t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_obbba"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
+            display_cols = ['Year', 'Ages', 'INPUT: SS', 'raw_div', 'raw_bond', 'raw_muni', 'raw_cg', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: MAGI', 'OUT: Fed Tax', 'Fed OBBBA', 'raw_outflow', 'Total Net Worth', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
+            fmt = {t["col_ss"]: "${:,.0f}", t["col_div"]: "${:,.0f}", t["col_bond"]: "${:,.0f}", t["col_muni"]: "${:,.0f}", t["col_cg"]: "${:,.0f}", t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_magi"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_obbba"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_nw"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
         else:
             display_cols = ['Year', 'Ages', 'LEVER: Roth', 'INPUT: RMDs', 'OUT: Fed Tax', 'raw_outflow', 'Expected Net Worth', 'IRMAA', '🚨 Important Events']
             fmt = {t["col_roth"]: "${:,.0f}", t["col_rmd"]: "${:,.0f}", t["col_tax"]: "${:,.0f}", t["col_outflow"]: "${:,.0f}", t["col_ex_nw"]: "${:,.0f}"}
@@ -1697,6 +1707,7 @@ with tab_data:
         "annual_expense": annual_expense,
         "qd_perc_raw": qd_perc_raw,
         "taxable_div_in": taxable_div_in,
+        "taxable_bond_in": taxable_bond_in,
         "muni_int_in": muni_int_in,
         "working_salary": working_salary,
         "ss_h_monthly": ss_h_monthly,

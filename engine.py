@@ -81,7 +81,7 @@ def calculate_roadmap(
     taxable_div_in, muni_int_in, last_salary,
     ss_h_monthly, ss_h_start, ss_w_monthly, ss_w_start,
     ira_growth, roth_growth, broker_growth, inflation_rate,
-    lang, withdrawal_strategy="tax_efficient",
+    lang, withdrawal_strategy="tax_efficient", taxable_bond_in=0,
     conv_override=None, ltcg_override=None, horizon_override=None,
     ss_start_h=None, ss_start_w=None, conv_stop_age_override=None,
     growth_sequence=None
@@ -148,8 +148,9 @@ def calculate_roadmap(
         total_ss = h_ss + w_ss
         
         qual_div = taxable_div_in * qd_perc
-        ord_div = taxable_div_in * (1 - qd_perc)
-        
+        # Taxable bond interest is always ordinary income -- never eligible for qualified rates.
+        ord_div = taxable_div_in * (1 - qd_perc) + taxable_bond_in
+
         combined_income = salary + ord_div + qual_div + sim_annual_ltcg + active_conversion + total_rmd + muni_int_in + (total_ss * 0.5)
         taxable_ss = 0
         if tax_status == "MFJ":
@@ -189,7 +190,7 @@ def calculate_roadmap(
         fed_tax = calculate_comprehensive_tax(ord_taxable, qd_ltcg_total, magi, inf_factor, taxable_ss, tax_status, i)
         
         target_expense = (annual_expense * inf_factor) + fed_tax + irmaa_surcharge       
-        available_cash = total_ss + salary + taxable_div_in + sim_annual_ltcg + muni_int_in + total_rmd
+        available_cash = total_ss + salary + taxable_div_in + taxable_bond_in + sim_annual_ltcg + muni_int_in + total_rmd
         shortfall = max(0, target_expense - available_cash)
         
         if shortfall > (cur_brokerage + (cur_ira_h + cur_ira_w) + cur_roth) and not oom_triggered:
@@ -306,7 +307,7 @@ def calculate_roadmap(
         
         rows.append({
             "Year": year, "Ages": f"{age_h}/{age_w}", "INPUT: SS": total_ss, 
-            "raw_div": taxable_div_in, "raw_muni": muni_int_in, "raw_cg": sim_annual_ltcg,
+            "raw_div": taxable_div_in, "raw_bond": taxable_bond_in, "raw_muni": muni_int_in, "raw_cg": sim_annual_ltcg,
             "LEVER: Roth": active_conversion, "INPUT: RMDs": total_rmd, "OUT: MAGI": magi, "OUT: Fed Tax": fed_tax,
             "raw_outflow": target_expense, "Roth Bal": cur_roth, "IRA Bal": cur_ira_h + cur_ira_w, 
             "Brokerage": cur_brokerage, "Total Net Worth": total_nw,
