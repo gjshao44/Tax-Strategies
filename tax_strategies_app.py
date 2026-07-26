@@ -767,7 +767,9 @@ with tab_lab:
     
     mid_idx = int(lab_horizon * 0.33)
     end_idx = int(lab_horizon * 0.95)
-    
+    mid_year = retire_year + mid_idx
+    end_year = retire_year + end_idx
+
     with st.spinner(f"Analyzing Roth Conversion amounts over {lab_horizon} years..."):
         for amt in test_amounts:
             res_df_sim = calculate_roadmap(**core_args, conv_override=amt, horizon_override=lab_horizon)
@@ -796,7 +798,7 @@ with tab_lab:
     # Chart 1: Roth Conversion with continuous line + colored points
     line = alt.Chart(res_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('amt:Q', title=t["lab_roth_chart_x"]),
-        y=alt.Y('raw_nw:Q', title="Weighted Expected Net Worth ($)", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Weighted Score ($, blended)", scale=alt.Scale(zero=False))
     )
     points = alt.Chart(res_df).mark_point(size=60, filled=True).encode(
         x=alt.X('amt:Q'),
@@ -808,18 +810,30 @@ with tab_lab:
         ),
         tooltip=[
             alt.Tooltip('amt:Q', title=t["lab_roth_chart_x"]),
-            alt.Tooltip('raw_nw:Q', title="Expected Net Worth", format="$,.0f"),
+            alt.Tooltip('raw_nw:Q', title="Weighted Score", format="$,.0f"),
             alt.Tooltip('max_irmaa:N', title="Max IRMAA Tier")
         ]
     )
     rule1 = alt.Chart(pd.DataFrame({'amt': [best_amt]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='amt:Q')
     st.altair_chart(line + points + rule1, width='stretch')
     st.caption("🟢 Green = within Medicare surcharge limit | 🔴 Red = exceeds limit | ┆ Dashed line = optimum")
+    st.caption(
+        f"📌 Weighted score (Year {mid_idx} at {mid_weight:.0%}, Year {end_idx} at {legacy_weight:.0%}, per slider above) "
+        f"— not the SS tab's unweighted final-year figure."
+    )
     st.success(f"💡 **{t['lab_roth_optimum']} {best_amt:,.0f}**")
 
     c1, c2 = st.columns(2)
-    c1.metric(f"🎯 Liquidity Milestone (Year {mid_idx})", f"${best_row['mid_nw']:,.0f}")
-    c2.metric(f"🛡️ Legacy Security (Year {end_idx})", f"${best_row['end_nw']:,.0f}")
+    c1.metric(
+        f"🎯 Near-Term Checkpoint — Year {mid_idx} ({mid_year})",
+        f"${best_row['mid_nw']:,.0f}",
+        help="Expected Net Worth at the ~33% mark of the horizon — the 'spending now' side of the weighted score."
+    )
+    c2.metric(
+        f"🛡️ Late-Horizon Checkpoint — Year {end_idx} ({end_year})",
+        f"${best_row['end_nw']:,.0f}",
+        help=f"Expected Net Worth at the ~95% mark of the horizon (one year short of the true final year, {retire_year + lab_horizon - 1}) — the 'legacy' side of the weighted score."
+    )
 
     st.divider()
 
@@ -836,7 +850,7 @@ with tab_lab:
             
             mid_nw = res_age_df.iloc[mid_idx]['Expected Net Worth']
             end_nw = res_age_df.iloc[end_idx]['Expected Net Worth']
-            weighted_score = (mid_nw * 0.2) + (end_nw * 0.8)
+            weighted_score = (mid_nw * mid_weight) + (end_nw * legacy_weight)
             
             max_tier_reached = res_age_df['irmaa_tier'].max()
             penalty = 1e15 * max(0, max_tier_reached - max_irmaa_limit)
@@ -854,7 +868,7 @@ with tab_lab:
     
     line2 = alt.Chart(res_age_df).mark_line(color='#bdc3c7', strokeWidth=3).encode(
         x=alt.X('age:Q', title=t["lab_stop_chart_x"], scale=alt.Scale(zero=False)),
-        y=alt.Y('raw_nw:Q', title="Weighted Expected Net Worth ($)", scale=alt.Scale(zero=False))
+        y=alt.Y('raw_nw:Q', title="Weighted Score ($, blended)", scale=alt.Scale(zero=False))
     )
     points2 = alt.Chart(res_age_df).mark_point(size=60, filled=True).encode(
         x=alt.X('age:Q'),
@@ -866,13 +880,17 @@ with tab_lab:
         ),
         tooltip=[
             alt.Tooltip('age:Q', title=t["lab_stop_chart_x"]),
-            alt.Tooltip('raw_nw:Q', title="Expected Net Worth", format="$,.0f"),
+            alt.Tooltip('raw_nw:Q', title="Weighted Score", format="$,.0f"),
             alt.Tooltip('max_irmaa:N', title="Max IRMAA Tier")
         ]
     )
     rule2 = alt.Chart(pd.DataFrame({'age': [best_age]})).mark_rule(color='red', strokeDash=[5,5]).encode(x='age:Q')
     st.altair_chart(line2 + points2 + rule2, width='stretch')
     st.caption("🔵 Blue = within Medicare surcharge limit | 🔴 Red = exceeds limit | ┆ Dashed line = optimum")
+    st.caption(
+        f"📌 Same weighted score as above: Year {mid_idx} ({mid_year}) at {mid_weight:.0%} and Year {end_idx} ({end_year}) at {legacy_weight:.0%}, "
+        f"per your Spending-Now/Legacy slider — not the SS tab's unweighted final-year figure."
+    )
     st.warning(f"🛑 **{t['lab_stop_optimum']} {best_age}**")
 
     st.divider()
