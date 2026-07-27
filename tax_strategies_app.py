@@ -150,8 +150,8 @@ with st.sidebar:
     st.sidebar.markdown(
         """
         <div style="font-size: 0.8rem; opacity: 0.7;">
-            <a href="https://github.com/gjshao44/Tax-Strategies/blob/main/TERMS.md" target="_blank" style="color: inherit; text-decoration: none; margin-right: 10px;">Terms of Service</a> | 
-            <a href="https://github.com/gjshao44/Tax-Strategies/blob/main/PRIVACY.md" target="_blank" style="color: inherit; text-decoration: none; margin-left: 10px;">Privacy Policy</a>
+            <a href="https://github.com/gjshao44/retirement-tax-strategies/blob/main/TERMS.md" target="_blank" style="color: inherit; text-decoration: none; margin-right: 10px;">Terms of Service</a> | 
+            <a href="https://github.com/gjshao44/retirement-tax-strategies/blob/main/PRIVACY.md" target="_blank" style="color: inherit; text-decoration: none; margin-left: 10px;">Privacy Policy</a>
         </div>
         """,
         unsafe_allow_html=True
