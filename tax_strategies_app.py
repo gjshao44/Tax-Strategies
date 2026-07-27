@@ -15,7 +15,7 @@ defaults = {
     "ss_h_start": 2029,
     "ss_w_monthly": 3000,
     "ss_w_start": 2029,
-    "legacy_weight": 0.8,
+    "lab_legacy_weight": 0.8,
     "working_salary": 200000,
     "annual_expense": 100000,
     "qd_perc_raw" : 80,
@@ -1485,13 +1485,18 @@ with tab_roadmap:
     # --- OPTIMIZATION SUMMARY: surface each tab's recommendation ---
     st.divider()
     st.subheader("⚡ Recommended Settings from Each Tab")
+    st.caption(
+        "Roth Conversion here is re-optimized assuming Social Security, Muni Allocation, Capital Gains Harvest, "
+        "and Withdrawal Strategy are all simultaneously set to *their* recommended values below — so it can differ "
+        "from the Roth Conversion tab's number, which optimizes Roth alone against your current settings for everything else."
+    )
 
     opt_rows = []
     any_unapplied = False
 
     # Roth conversion (jointly optimized with other settings)
     roth_applied = (st.session_state.roth_conv == best_roth_joint)
-    opt_rows.append({"Decision": "Roth Conversion", "Optimal": f"${best_roth_joint:,.0f}/yr", "Current": f"${st.session_state.roth_conv:,.0f}/yr", "Applied": "✅" if roth_applied else "❌"})
+    opt_rows.append({"Decision": "Roth Conversion (joint-optimal)", "Optimal": f"${best_roth_joint:,.0f}/yr", "Current": f"${st.session_state.roth_conv:,.0f}/yr", "Applied": "✅" if roth_applied else "❌"})
     if not roth_applied:
         any_unapplied = True
 

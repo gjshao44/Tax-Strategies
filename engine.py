@@ -277,6 +277,10 @@ def calculate_roadmap(
                     cur_roth -= extra_r
                     from_roth += extra_r
 
+        # Realizing capital gains means selling brokerage assets; the sale proceeds
+        # leave the account (any portion not spent is re-added below as surplus).
+        cur_brokerage = max(0, cur_brokerage - sim_annual_ltcg)
+
         # Save surplus cash to the Brokerage account
         surplus = max(0, available_cash - target_expense)
         cur_brokerage += surplus
