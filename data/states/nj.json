@@ -1,0 +1,47 @@
+{
+  "meta": {"name": "New Jersey", "abbr": "NJ"},
+  "income_tax": {
+    "type": "progressive",
+    "brackets_single": {
+      "value": [[0, 1.4], [20000, 1.75], [35000, 3.5], [40000, 5.525], [75000, 6.37], [500000, 8.97], [1000000, 10.75]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2026-01",
+      "source": "https://www.nj.gov/treasury/taxation/taxtables.shtml",
+      "note": "Statutory brackets, not CPI-indexed; unchanged for several years."
+    },
+    "brackets_mfj": {
+      "value": [[0, 1.4], [20000, 1.75], [50000, 2.45], [70000, 3.5], [80000, 5.525], [150000, 6.37], [500000, 8.97], [1000000, 10.75]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2026-01",
+      "source": "https://www.nj.gov/treasury/taxation/taxtables.shtml"
+    },
+    "standard_deduction_single": {"value": 0, "unit": "$", "as_of": "2026-01", "source": ""},
+    "standard_deduction_mfj": {"value": 0, "unit": "$", "as_of": "2026-01", "source": ""},
+    "personal_exemption_single": {"value": 1000, "unit": "$", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit2.shtml"},
+    "personal_exemption_mfj": {"value": 2000, "unit": "$ ($1,000 per spouse)", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit2.shtml"},
+    "senior_addl_exemption_single": {"value": 1000, "unit": "$ per filer age 65+", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit2.shtml"},
+    "senior_addl_exemption_mfj": {"value": 1000, "unit": "$ per qualifying spouse age 65+ on a joint return", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit2.shtml"}
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://support.taxslayer.com/hc/en-us/articles/360028656431-Is-my-retirement-income-taxable-to-New-Jersey"},
+    "note": "Fully exempt from NJ gross income tax regardless of income."
+  },
+  "retirement_income": {
+    "treatment": {"value": "partial", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit7.shtml"},
+    "eligibility_age": 62,
+    "exclusion_cap_single": {"value": 75000, "unit": "$", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit7.shtml"},
+    "exclusion_cap_mfj": {"value": 100000, "unit": "$", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit7.shtml"},
+    "exclusion_income_limit": {"value": 150000, "unit": "$ total NJ income, hard cliff", "as_of": "2026-01", "source": "https://www.nj.gov/treasury/taxation/njit7.shtml"},
+    "line28a_worksheet_note": {"value": "Per NJ-1040 2025 instructions, Line 28a: Line A = actual pension/annuity/IRA income; Line B = $100,000 flat (MFJ, income <= $100k), 50% of Line A (income $100,001-$125,000), or 25% of Line A (income $125,001-$150,000); exclusion = lesser of Line A or Line B. So in the 50%/25% tiers the reduction applies to the taxpayer's actual retirement income, not to the $100,000 cap.", "unit": "text", "as_of": "2026-07", "source": "https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf"},
+    "note": "Retirement/Pension Exclusion: filer (or spouse) must be 62+ or disabled as of Dec 31, AND total income must be <= $150,000. If income <= $100,000: exclude up to the cap ($100k MFJ/$75k single/$50k MFS). If $100,001-$125,000: 50% of the otherwise-allowed exclusion. If $125,001-$150,000: 25%. Above $150,000: $0 -- the entire exclusion is lost (hard cliff), not just the excess, and all pension/401(k)/IRA income is fully taxed as ordinary income."
+  },
+  "senior_tax_credits": {
+    "note": "The $1,000 age-65+ personal exemption plus the Pension/Retirement Income Exclusion above are NJ's senior-specific income tax breaks.",
+    "source": "https://www.nj.gov/treasury/taxation/njit2.shtml", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 2.11, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585", "note": "Highest in the nation; Tax Foundation's CY2023-data figure is 2.23%."},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "$250 Senior/Disabled Property Tax Deduction: age 65+/disabled, NJ resident 1+ year, income <= $10,000 (excludes Social Security) -- income limit far below typical retirement-planning income, unlikely to apply. Senior Freeze (Property Tax Reimbursement): age 65+ or SSDI, NJ resident 10+ years, in current home 3+ years, 2025 income limit $172,475 -- reimburses property tax increases above a locked base-year amount. Stay NJ (new, benefits from 2025/2026): age 65+ (or SSDI), income < $500,000 -- credit = 50% of property tax bill, capped at $6,500 (income <$100k)/$5,000 ($100k-$150k)/$4,000 ($150k-$200k) and phasing out further above that, coordinated with Senior Freeze/ANCHOR via a 'maximum benefit' rule. ANCHOR: broader (non-senior-exclusive) rebate up to $1,750. None of these are applied to the estimate below since eligibility depends on income not modeled here.",
+    "source": "https://www.nj.gov/treasury/taxation/staynj/index.shtml", "as_of": "2026-01"
+  }
+}

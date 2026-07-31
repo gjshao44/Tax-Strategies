@@ -319,7 +319,8 @@ def calculate_roadmap(
             "IRMAA": "✅ Safe" if irmaa_tier == 0 else f"🚩 Tier {irmaa_tier}",
             "irmaa_tier": irmaa_tier,
             "🚨 Important Events": ", ".join(ev), "raw_roth_yield": yearly_roth_growth, "raw_rmd": total_rmd,
-            "Fed OBBBA": obbba_deduct
+            "Fed OBBBA": obbba_deduct,
+            "raw_ira_income": total_rmd + ira_withdrawn + active_conversion,
         })
     return pd.DataFrame(rows)
 

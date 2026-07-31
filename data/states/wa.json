@@ -1,0 +1,33 @@
+{
+  "meta": {"name": "Washington", "abbr": "WA"},
+  "income_tax": {
+    "type": "none",
+    "note": "No tax on wages, retirement-account withdrawals, or pensions."
+  },
+  "capital_gains_excise": {
+    "value": {"standard_deduction": 278000, "brackets": [[0, 7.0], [1000000, 9.9]]},
+    "unit": "WA long-term capital gains excise tax: standard deduction $, then threshold $ / total marginal rate % above it",
+    "as_of": "2025-12",
+    "source": "https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax",
+    "note": "7% on WA long-term capital gains above the standard deduction; an additional 2.9% (9.9% combined) applies above $1,000,000 of gain (flat, not inflation-indexed). Applies identically regardless of filing status -- no single/MFJ split. Retirement-account withdrawals and real estate sales are explicitly exempt. 2026 standard deduction not yet published by WA DOR at research time; $278,000 (2025) used as most recent confirmed."
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://dor.wa.gov/"},
+    "note": "No state income tax exists, so Social Security is not taxed."
+  },
+  "retirement_income": {
+    "treatment": {"value": "exempt", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax"},
+    "note": "No income tax; and IRA/401(k)/pension withdrawals are also explicitly carved out of the capital gains excise tax."
+  },
+  "senior_tax_credits": {
+    "note": "No income tax exists to give a break against.",
+    "source": "", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 0.81, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585", "note": "Some secondary sources cite 0.84%."},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "Senior Citizens/Disabled Persons Property Tax Exemption (RCW 84.36.381): age 61+ (or retired due to disability); tiered exemption from regular and/or excess levies based on combined disposable income, with thresholds set per county (e.g. King County 2025 threshold $88,998). Separate Deferral Program (age 60+) lets seniors defer property tax payment, accruing 5% simple annual interest, repaid at sale/death/transfer. Both are county-specific and/or income-tested -- not applied to the estimate below.",
+    "source": "https://dor.wa.gov/taxes-rates/property-tax/senior-citizens-and-people-disabilities-exemption-and-deferred-income-thresholds", "as_of": "2026-01"
+  }
+}

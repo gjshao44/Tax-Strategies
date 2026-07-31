@@ -1,0 +1,29 @@
+{
+  "meta": {"name": "Pennsylvania", "abbr": "PA"},
+  "income_tax": {
+    "type": "flat",
+    "flat_rate_pct": {"value": 3.07, "unit": "% flat, all filers", "as_of": "2026-01", "source": "https://taxfoundation.org/location/pennsylvania/"},
+    "standard_deduction_single": {"value": 0, "unit": "$", "as_of": "2026-01", "source": "", "note": "PA has neither a standard deduction nor a personal exemption -- every dollar of taxable compensation is taxed from dollar one, aside from a few narrow itemized-style deductions (HSA, 529, PA ABLE, medical savings account contributions) not modeled here."},
+    "standard_deduction_mfj": {"value": 0, "unit": "$", "as_of": "2026-01", "source": ""},
+    "senior_addl_deduction_per_person": {"value": 0, "unit": "$", "as_of": "2026-01", "source": "", "note": "No age-based deduction exists since PA has no standard deduction system at all; PA's de facto senior break is the retirement-income exclusion below."}
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://www.picpa.org/professional-resources/research-publications/cpa-now-blog-archive/cpa-now/2019/12/27/pa-treatment-of-1099r-distributions"},
+    "note": "Fully exempt at the state level, even for the portion taxed federally."
+  },
+  "retirement_income": {
+    "treatment": {"value": "exempt", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://www.picpa.org/professional-resources/research-publications/cpa-now-blog-archive/cpa-now/2019/12/27/pa-treatment-of-1099r-distributions"},
+    "note": "Distributions from an 'eligible PA retirement plan' (employer pensions, 401(k), 403(b)) are fully exempt once the retiree has reached the plan's normal retirement age or completed its required years of service. Traditional IRA distributions are exempt once past the federal early-withdrawal-penalty age (59 1/2), which PA uses as the proxy retirement age. Net effect for a typical retiree drawing pension/401(k)/IRA income after 59 1/2-60: fully exempt. Early/pre-retirement-age distributions are taxable to the extent they exceed previously-taxed (after-tax) contributions -- not modeled here since this app assumes retirement-age withdrawals."
+  },
+  "senior_tax_credits": {
+    "note": "None beyond the retirement-income exclusion above -- PA has no PA-40 credit/deduction tied specifically to age.",
+    "source": "", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 1.26, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://taxfoundation.org/location/pennsylvania/", "note": "Median bill ~$2,690/yr on a $212,079 home; PA ranks #12 nationally -- top tier for property tax burden."},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "Property Tax/Rent Rebate Program (PTRR): homeowners/renters age 65+; widow(er)s 50+; people with disabilities 18+. 2025 income limit $48,110 (for rebates paid in 2026) -- applicants may exclude 50% of Social Security income when calculating eligibility income. Max standard rebate $1,000 (recently raised from $650), tiered down as income rises within the limit. Income-tested -- not applied to the estimate below, but worth checking manually if your PA income (after the 50% SS exclusion) is near the limit.",
+    "source": "https://www.pa.gov/agencies/revenue/ptrr", "as_of": "2025-01"
+  }
+}

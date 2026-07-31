@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.nj.gov)",
+      "WebFetch(domain:www.mass.gov)",
+      "WebFetch(domain:www.ftb.ca.gov)",
+      "WebFetch(domain:dor.wa.gov)",
+      "WebFetch(domain:www.oregon.gov)",
+      "WebFetch(domain:tax.illinois.gov)",
+      "WebFetch(domain:www.ncdor.gov)",
+      "Bash(curl -s -L \"https://tax.illinois.gov/content/dam/soi/en/web/tax/research/publications/bulletins/documents/2026/fy-2026-15.pdf\" -o /tmp/claude-1000/-home-gjshao-git-retirement-tax-strategies/5b06d0a8-3bac-49ee-8313-0f40adfae74a/scratchpad/il2026.pdf)",
+      "Bash(pdftotext /tmp/claude-1000/-home-gjshao-git-retirement-tax-strategies/5b06d0a8-3bac-49ee-8313-0f40adfae74a/scratchpad/il2026.pdf -)",
+      "Bash(python3 -c \"import pdfplumber\")",
+      "Bash(python3 -c \"import PyPDF2\")",
+      "Bash(python3 -c \"import pypdf\")",
+      "Bash(python3 -c \"import fitz\")",
+      "Bash(pip install *)",
+      "Bash(python3 -m pip --version)",
+      "Bash(sudo apt-get install -y poppler-utils)",
+      "WebFetch(domain:taxfoundation.org)",
+      "WebFetch(domain:wallethub.com)",
+      "WebFetch(domain:www.halfpricesoft.com)",
+      "WebFetch(domain:ustax.tools)",
+      "Bash(python3 *)",
+      "Bash(chromium-cli --help)",
+      "Bash(node -e \"require\\('playwright'\\); console.log\\('node playwright OK'\\)\")"
+    ]
+  }
+}

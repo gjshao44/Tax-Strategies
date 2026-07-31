@@ -1,0 +1,44 @@
+{
+  "meta": {"name": "California", "abbr": "CA"},
+  "income_tax": {
+    "type": "progressive",
+    "brackets_single": {
+      "value": [[0, 1.0], [11079, 2.0], [26265, 4.0], [41453, 6.0], [57543, 8.0], [72725, 9.3], [371480, 10.3], [445772, 11.3], [742953, 12.3]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2025-01",
+      "source": "https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf",
+      "note": "FTB had not yet published official 2026 Schedule X/Y at time of research; 2025 schedule used as most recent confirmed."
+    },
+    "brackets_mfj": {
+      "value": [[0, 1.0], [22159, 2.0], [52529, 4.0], [82905, 6.0], [115085, 8.0], [145449, 9.3], [742959, 10.3], [891543, 11.3], [1485906, 12.3]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2025-01",
+      "source": "https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf"
+    },
+    "surtax": {
+      "value": {"threshold": 1000000, "rate_pct": 1.0}, "unit": "extra % on taxable income above threshold, same threshold for all filing statuses",
+      "as_of": "2025-01", "source": "https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf",
+      "note": "Mental Health Services Tax; brings the effective top marginal rate to 13.3%."
+    },
+    "standard_deduction_single": {"value": 5706, "unit": "$", "as_of": "2025-01", "source": "https://www.ftb.ca.gov/file/personal/deductions/index.html"},
+    "standard_deduction_mfj": {"value": 11412, "unit": "$", "as_of": "2025-01", "source": "https://www.ftb.ca.gov/file/personal/deductions/index.html"},
+    "senior_addl_deduction_per_person": {"value": 0, "unit": "$", "as_of": "2025-01", "source": "https://www.ftb.ca.gov/file/personal/deductions/index.html", "note": "CA has no additional standard deduction for 65+; instead gives a small nonrefundable Senior Exemption Credit ($153 single, $306 MFJ, 2025) -- see senior_tax_credits below. Not applied to the computed estimate."}
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2025-01", "source": "https://www.ftb.ca.gov/"},
+    "note": "100% exempt from CA income tax regardless of income level."
+  },
+  "retirement_income": {
+    "treatment": {"value": "ordinary", "unit": "exempt/ordinary/partial", "as_of": "2025-01", "source": "https://smartasset.com/retirement/california-retirement-taxes"},
+    "note": "Pension, 401(k)/403(b), and traditional IRA withdrawals are fully taxed as ordinary income -- no exclusion. Early distributions also carry a 2.5% CA penalty on top of the 10% federal penalty."
+  },
+  "senior_tax_credits": {
+    "note": "Senior Head of Household Credit: 2% of CA taxable income, capped at $1,860 (2025); available to filers 65+ who qualified for HOH in one of the prior 2 years due to a spouse's death, with income under $98,652. Senior Exemption Credit: $153 single/$306 MFJ nonrefundable credit (2025), in lieu of an extra deduction. Neither is applied to the computed estimate below -- both are narrow-eligibility or immaterial in size.",
+    "source": "https://www.ftb.ca.gov/file/personal/credits/senior-hoh-credit.html", "as_of": "2025-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 0.70, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585"},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "Property Tax Postponement Program: age 62+/blind/disabled, ≥40% home equity, no reverse mortgage, 2025-26 household income cap $55,181 -- state pays the current year's tax and places a lien, repaid at sale/transfer/death (does not reduce the tax itself, so not applied to the estimate below). Prop 19 also lets 55+/disabled homeowners transfer their existing lower assessed (Prop 13) value to a new home statewide, up to 3 times -- valuable if downsizing, not modeled here.",
+    "source": "https://smcacre.gov/assessor/property-tax-postponement-senior-citizens-blind-or-disabled-persons", "as_of": "2026-02"
+  }
+}

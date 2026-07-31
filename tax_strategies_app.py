@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from engine import calculate_roadmap, calculate_comprehensive_tax
 from config import LANG_MAP
+import state_tax as stx
 
 st.set_page_config(page_title="Retirement Tax Strategy Planner", layout="wide")
 
@@ -39,7 +40,9 @@ defaults = {
     "taxable_div_in": 0,
     "taxable_bond_in": 0,
     "muni_int_in" : 0,
-    "annual_ltcg": 0
+    "annual_ltcg": 0,
+    "state_home_value": 600000,
+    "selected_us_state": "CA",
 
 }
 
@@ -296,7 +299,7 @@ max_irmaa_limit_val = st.session_state.get("lab_max_irmaa", 5)
 best_amt_for_calc = get_optimal_conversion(core_args, lab_horizon, legacy_weight_val, max_irmaa_limit_val)
 st.session_state['best_amt'] = best_amt_for_calc
 
-tab_retire, tab_ss, tab_lab, tab_muni, tab_cg, tab_whatif, tab_roadmap, tab_data = st.tabs([t["tab_retire"], t["tab_ss"], t["tab_lab"], t["tab_muni"], t["tab_cg"], t["tab_whatif"], t["tab_roadmap"], t["tab_data"]])
+tab_retire, tab_ss, tab_lab, tab_muni, tab_cg, tab_state, tab_whatif, tab_roadmap, tab_data = st.tabs([t["tab_retire"], t["tab_ss"], t["tab_lab"], t["tab_muni"], t["tab_cg"], t["tab_state"], t["tab_whatif"], t["tab_roadmap"], t["tab_data"]])
 
 with tab_retire:
     st.subheader(t["retire_h"])
@@ -1289,6 +1292,170 @@ with tab_cg:
     ]
     st.dataframe(pd.DataFrame(cg_ref_data), width='stretch', hide_index=True)
 
+def _esc_md_dollars(text):
+    """Escape '$' so Streamlit's markdown/LaTeX renderer doesn't treat two dollar amounts
+    in the same sourced note (e.g. '$65,000 ... $75,000') as inline math delimiters."""
+    return text.replace("$", "\\$") if isinstance(text, str) else text
+
+with tab_state:
+    st.subheader(t["state_h"])
+    st.caption(t["state_desc"])
+
+    all_states_data = stx.load_all_states()
+    state_names = {abbr: all_states_data[abbr]["meta"]["name"] for abbr in stx.STATE_ORDER}
+
+    # --- Year 1 federal context, reusing the same calculation as the rest of this app ---
+    df_state_yr1 = calculate_roadmap(**core_args)
+    yr1_row = df_state_yr1.iloc[0]
+    yr1_magi = yr1_row["OUT: MAGI"]
+    yr1_fed_tax = yr1_row["OUT: Fed Tax"]
+    yr1_obbba = yr1_row["Fed OBBBA"]
+    yr1_ira_income = yr1_row["raw_ira_income"]
+
+    st.markdown(f"##### {t['state_fed_h']}")
+    st.caption(t["state_fed_desc"])
+    f1, f2, f3 = st.columns(3)
+    f1.metric(t["state_fed_magi"], f"${yr1_magi:,.0f}")
+    f2.metric(t["state_fed_tax"], f"${yr1_fed_tax:,.0f}")
+    f3.metric(t["state_fed_obbba"], f"${yr1_obbba:,.0f}", help=t["state_fed_obbba_help"])
+
+    income_inputs = {
+        "salary": working_salary,
+        "ordinary_other": taxable_bond_in + taxable_div_in * (1 - qd_perc),
+        "qualified_dividends": taxable_div_in * qd_perc,
+        "capital_gains": annual_ltcg,
+        "ira_income": yr1_ira_income,
+        "total_ss": (ss_h_monthly + ss_w_monthly) * 12,
+    }
+
+    # --- Selection inputs ---
+    st.divider()
+    st.markdown(f"##### {t['state_input_h']}")
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        selected_state = st.selectbox(
+            t["state_select_label"], stx.STATE_ORDER,
+            format_func=lambda a: state_names[a], key="selected_us_state",
+        )
+    with sc2:
+        home_value = st.number_input(t["state_home_value_label"], min_value=0, step=10000, key="state_home_value")
+
+    # --- Compute across all 10 states ---
+    state_rows = []
+    state_results = {}
+    for abbr in stx.STATE_ORDER:
+        result = stx.compute_state_tax(
+            all_states_data[abbr], tax_status, h_age_at_retire, w_age_at_retire, income_inputs, home_value
+        )
+        state_results[abbr] = result
+        state_rows.append({
+            t["state_col_state"]: state_names[abbr],
+            "abbr": abbr,
+            t["state_col_income_tax"]: result["income_tax"],
+            t["state_col_property_tax"]: result["property_tax"],
+            t["state_col_total"]: result["total_tax"],
+            t["state_col_combined"]: result["total_tax"] + yr1_fed_tax,
+        })
+    df_state_compare = pd.DataFrame(state_rows).sort_values(t["state_col_total"]).reset_index(drop=True)
+
+    st.divider()
+    st.subheader(t["state_compare_h"])
+    st.caption(t["state_compare_desc"])
+
+    chart_state_df = df_state_compare.copy()
+    chart_state_df["Is Selected"] = chart_state_df["abbr"] == selected_state
+    state_bar_chart = alt.Chart(chart_state_df).mark_bar().encode(
+        x=alt.X(f"{t['state_col_state']}:N", sort="-y", title=""),
+        y=alt.Y(f"{t['state_col_total']}:Q", title=t["state_col_total"], axis=alt.Axis(format="$,.0f")),
+        color=alt.condition(alt.datum["Is Selected"], alt.value("#e74c3c"), alt.value("#3498db")),
+        tooltip=[
+            t["state_col_state"],
+            alt.Tooltip(f"{t['state_col_income_tax']}:Q", format="$,.0f"),
+            alt.Tooltip(f"{t['state_col_property_tax']}:Q", format="$,.0f"),
+            alt.Tooltip(f"{t['state_col_total']}:Q", format="$,.0f"),
+        ],
+    ).properties(height=350)
+    st.altair_chart(state_bar_chart, width="stretch")
+
+    state_display_df = df_state_compare.drop(columns=["abbr"]).copy()
+    for col in [t["state_col_income_tax"], t["state_col_property_tax"], t["state_col_total"], t["state_col_combined"]]:
+        state_display_df[col] = state_display_df[col].map(lambda v: f"${v:,.0f}")
+    st.dataframe(state_display_df, width="stretch", hide_index=True)
+
+    # --- Breakdown for the selected state ---
+    st.divider()
+    sel_result = state_results[selected_state]
+    st.subheader(t["state_breakdown_h"].format(state=state_names[selected_state]))
+    b1, b2, b3 = st.columns(3)
+    b1.metric(t["state_col_income_tax"], f"${sel_result['income_tax']:,.0f}")
+    b2.metric(t["state_col_property_tax"], f"${sel_result['property_tax']:,.0f}")
+    b3.metric(t["state_col_combined"], f"${sel_result['total_tax'] + yr1_fed_tax:,.0f}")
+    excluded_ri = sel_result["breakdown"].get("excluded_retirement_income", 0.0)
+    if excluded_ri > 0:
+        st.caption(f"{t['state_excluded_label']}: ${excluded_ri:,.0f}")
+
+    taxable_base = sel_result["breakdown"].get("state_ordinary_taxable")
+    total_deduction = sel_result["breakdown"].get("total_deduction")
+    senior_addl_deduction = sel_result["breakdown"].get("senior_addl_deduction", 0.0)
+    num_65_plus = sel_result["breakdown"].get("num_65_plus", 0)
+    if taxable_base is not None:
+        st.caption(
+            f"{t['state_taxable_base_label']}: \\${taxable_base:,.0f} "
+            f"({t['state_deduction_label']}: \\${total_deduction:,.0f}"
+            + (f", {t['state_senior_deduction_label']}: \\${senior_addl_deduction:,.0f} ({num_65_plus} × 65+)" if num_65_plus > 0 else "")
+            + ")"
+        )
+
+    # --- State facts / senior benefits deep-dive ---
+    st.divider()
+    st.subheader(t["state_deepdive_h"].format(state=state_names[selected_state]))
+    sd = all_states_data[selected_state]
+    income_tax_type = sd.get("income_tax", {}).get("type")
+
+    dd1, dd2 = st.columns(2)
+    with dd1:
+        ss_section = sd.get("social_security", {})
+        ss_taxable = stx.fact_value(ss_section, "taxable", False)
+        st.markdown(f"**{t['state_ss_label']}** {t['state_ss_yes'] if ss_taxable else t['state_ss_no']}")
+        if ss_section.get("note"):
+            st.caption(_esc_md_dollars(ss_section["note"]))
+
+        ri_section = sd.get("retirement_income", {})
+        ri_treatment = stx.fact_value(ri_section, "treatment", "ordinary")
+        ri_label = {
+            "exempt": t["state_ri_exempt"],
+            "ordinary": t["state_ri_ordinary"],
+            "partial": t["state_ri_partial"],
+        }.get(ri_treatment, ri_treatment)
+        st.markdown(f"**{t['state_retirement_label']}** {ri_label}")
+        if ri_section.get("note"):
+            st.caption(_esc_md_dollars(ri_section["note"]))
+
+    with dd2:
+        pt_section = sd.get("property_tax", {})
+        rate = stx.fact_value(pt_section, "effective_rate_pct", 0) or 0
+        st.markdown(f"**{t['state_property_rate_label']}:** {rate:.2f}%")
+        rate_fact = pt_section.get("effective_rate_pct", {})
+        if isinstance(rate_fact, dict) and rate_fact.get("source"):
+            st.caption(f"[source]({rate_fact['source']})")
+
+        if income_tax_type == "none":
+            st.markdown(f"**{t['state_no_income_tax']}**")
+
+    with st.expander(t["state_senior_credit_label"]):
+        credit_section = sd.get("senior_tax_credits", {})
+        if credit_section.get("note"):
+            st.caption(_esc_md_dollars(credit_section["note"]))
+        if credit_section.get("source"):
+            st.caption(f"[source]({credit_section['source']})")
+
+    with st.expander(t["state_property_relief_label"]):
+        pt_section = sd.get("property_tax", {})
+        if pt_section.get("relief_programs_note"):
+            st.caption(_esc_md_dollars(pt_section["relief_programs_note"]))
+        if pt_section.get("source"):
+            st.caption(f"[source]({pt_section['source']})")
+
 with tab_whatif:
     st.subheader(t["whatif_h"])
     st.caption(t["whatif_desc"])
@@ -1724,7 +1891,9 @@ with tab_data:
         "broker_growth_raw": broker_growth_raw,
         "inflation_rate_raw": inflation_rate_raw,
         "lab_legacy_weight": legacy_weight_val,
-        "lab_max_irmaa": max_irmaa_limit_val
+        "lab_max_irmaa": max_irmaa_limit_val,
+        "state_home_value": home_value,
+        "selected_us_state": selected_state,
     }
     
     json_string = json.dumps(current_profile, indent=4)

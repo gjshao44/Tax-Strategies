@@ -1,0 +1,40 @@
+{
+  "meta": {"name": "Oregon", "abbr": "OR"},
+  "income_tax": {
+    "type": "progressive",
+    "brackets_single": {
+      "value": [[0, 4.75], [4550, 6.75], [11400, 8.75], [125000, 9.9]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2026-01",
+      "source": "https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf"
+    },
+    "brackets_mfj": {
+      "value": [[0, 4.75], [9100, 6.75], [22800, 8.75], [250000, 9.9]],
+      "unit": "threshold $ / marginal rate %", "as_of": "2026-01",
+      "source": "https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf"
+    },
+    "surtax": null,
+    "standard_deduction_single": {"value": 2910, "unit": "$", "as_of": "2026-01", "source": "https://www.halfpricesoft.com/2026/taxrate-oregon-2026.asp"},
+    "standard_deduction_mfj": {"value": 5820, "unit": "$", "as_of": "2026-01", "source": "https://www.halfpricesoft.com/2026/taxrate-oregon-2026.asp"},
+    "senior_addl_deduction_single": {"value": 1200, "unit": "$ per qualifying filer 65+ (single/HOH)", "as_of": "2025-01", "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40_101-040_2025.pdf", "note": "2025 figure carried forward; 2026 not separately confirmed."},
+    "senior_addl_deduction_mfj": {"value": 1000, "unit": "$ per qualifying spouse 65+ on a joint return", "as_of": "2025-01", "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40_101-040_2025.pdf"}
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://oregon.public.law/statutes/ors_316.054"},
+    "note": "Fully subtracted from federal taxable income under ORS 316.054."
+  },
+  "retirement_income": {
+    "treatment": {"value": "ordinary", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://americantaxservice.org/oregon-retirement-taxes-explained-for-seniors/"},
+    "note": "401(k)/IRA/most pensions fully taxed -- no general exclusion. Exception: Federal Pension Income Subtraction excludes the portion of a federal civil-service pension earned for service before Oct 1, 1991 (not modeled -- this app's income doesn't distinguish pre-1991 federal service)."
+  },
+  "senior_tax_credits": {
+    "note": "Retirement Income Credit (9% of qualifying pension income, age 62+, household income under $22,500 single/$45,000 joint, 2025 figures) sunset after tax year 2025 under ORS 316.157/OAR 150-316-0225 -- not available for 2026 or later, so not applied here.",
+    "source": "https://oregon.public.law/rules/oar_150-316-0225", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 0.81, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585"},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "Property Tax Deferral for Disabled and Senior Homeowners: age 62+ (or disabled), owned/occupied home 5+ consecutive years, 2026 household income limit $70,000, home real market value cap $301,000 -- state pays current taxes and records a lien at 6% simple annual interest, repaid at sale/death/transfer (income-tested, not applied to the estimate below).",
+    "source": "https://www.oregon.gov/dor/programs/property/pages/senior-and-disabled-property-tax-deferral-program.aspx", "as_of": "2026-01"
+  }
+}

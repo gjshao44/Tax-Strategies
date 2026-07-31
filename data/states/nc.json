@@ -1,0 +1,29 @@
+{
+  "meta": {"name": "North Carolina", "abbr": "NC"},
+  "income_tax": {
+    "type": "flat",
+    "flat_rate_pct": {"value": 3.99, "unit": "% flat, all filers", "as_of": "2026-01", "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/tax-rate-schedules"},
+    "standard_deduction_single": {"value": 12750, "unit": "$", "as_of": "2025-01", "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/filing-topics/north-carolina-standard-deduction-or-north-carolina-itemized-deductions", "note": "2025 figure carried forward; NCDOR had not published a separate 2026 amount at time of research."},
+    "standard_deduction_mfj": {"value": 25500, "unit": "$", "as_of": "2025-01", "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/filing-topics/north-carolina-standard-deduction-or-north-carolina-itemized-deductions"},
+    "senior_addl_deduction_per_person": {"value": 0, "unit": "$", "as_of": "2025-01", "source": "", "note": "No additional NC standard deduction for age 65+; NC has not adopted the federal OBBBA senior deduction."}
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/filing-topics/social-security-and-railroad-retirement-benefits"},
+    "note": "Fully exempt regardless of income level; taxpayers deduct any federally-taxed SS benefits on Form D-400 Schedule S."
+  },
+  "retirement_income": {
+    "treatment": {"value": "ordinary", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/filing-topics/bailey-decision-concerning-federal-state-and-local-retirement-benefits"},
+    "note": "Private pensions, 401(k)/403(b), and traditional IRA distributions are fully taxable as ordinary income -- no exemption. The Bailey settlement only exempts government pensions (federal/state/local) where the retiree had 5+ years of creditable service and was vested as of Aug 12, 1989 -- not modeled here since this app's IRA/401(k) income is private-style, not a grandfathered government pension."
+  },
+  "senior_tax_credits": {
+    "note": "None found -- NC offers no additional income-tax deduction, exemption, or credit tied specifically to age 65+.",
+    "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/filing-topics/north-carolina-standard-deduction-or-north-carolina-itemized-deductions", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 0.66, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://taxfoundation.org/location/north-carolina/", "note": "Median bill ~$1,502/yr on a $235,312 home; NC ranks #33 of 50 states (2024 Census ACS data)."},
+    "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
+    "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
+    "relief_programs_note": "Elderly/Disabled Homestead Exclusion: age 65+ (or totally/permanently disabled), owned and occupied as permanent residence as of Jan 1, 2025 income limit $38,800 (adjusted annually via SS COLA) -- excludes the greater of $25,000 or 50% of appraised value. Circuit Breaker Tax Deferment: owned/occupied home 5+ years, caps property tax at 4% of income (income <= $38,800) or 5% of income (income <= $58,200), with the excess deferred as a lien (not forgiven). Both are income-tested well below typical retirement-planning income and not applied to the estimate below.",
+    "source": "https://www.ncleg.net/enactedlegislation/statutes/html/bysection/chapter_105/gs_105-277.1.html", "as_of": "2026-01"
+  }
+}

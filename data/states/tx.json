@@ -1,0 +1,26 @@
+{
+  "meta": {"name": "Texas", "abbr": "TX"},
+  "income_tax": {
+    "type": "none",
+    "note": "No individual income tax of any kind."
+  },
+  "social_security": {
+    "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://taxfoundation.org/location/texas/"},
+    "note": "No state income tax exists."
+  },
+  "retirement_income": {
+    "treatment": {"value": "exempt", "unit": "exempt/ordinary/partial", "as_of": "2026-01", "source": "https://taxfoundation.org/location/texas/"},
+    "note": "No state income tax exists."
+  },
+  "senior_tax_credits": {
+    "note": "N/A -- no income tax to give a break against.",
+    "source": "", "as_of": "2026-01"
+  },
+  "property_tax": {
+    "effective_rate_pct": {"value": 1.40, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://taxfoundation.org/location/texas/", "note": "TX has no income tax, so relies heavily on property tax."},
+    "general_homestead_reduction_usd": {"value": 140000, "unit": "$ off assessed value for school-district taxes, all homestead owners", "as_of": "2025-11", "source": "https://propertytaxrates.org/exemptions/texas/", "note": "Raised from $100,000 by voter-approved Proposition 13 (Nov 2025)."},
+    "senior_homestead_reduction_usd": {"value": 60000, "unit": "$ additional off assessed value for school-district taxes, age 65+ (on top of the general exemption)", "as_of": "2025-11", "source": "https://texaslawhelp.org/article/over-65-property-tax-exemptions-and-deferrals", "note": "Combined general + over-65 exemption applies specifically to the school-district portion of the levy. City/county/other taxing units may offer smaller, separate local-option exemptions not modeled here. Exact combined totals were in flux after the 2023 and Nov 2025 relief packages -- verify against your county appraisal district before relying on the exact dollar figure."},
+    "relief_programs_note": "School Tax Ceiling ('senior freeze'): once a homeowner turns 65 (or becomes disabled) and claims the exemption, their school-district tax bill is frozen at that year's dollar amount and cannot increase in later years even as home values rise (can decrease if rates drop) -- not modeled numerically here, but a meaningful long-run benefit beyond the assessed-value reduction applied above.",
+    "source": "https://texaslawhelp.org/article/over-65-property-tax-exemptions-and-deferrals", "as_of": "2025-11"
+  }
+}
