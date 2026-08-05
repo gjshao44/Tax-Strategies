@@ -36,6 +36,11 @@
   },
   "property_tax": {
     "effective_rate_pct": {"value": 0.70, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585"},
+    "new_buyer_effective_rate_pct": {
+      "value": 1.15, "label": "New buyer / recent purchase", "unit": "% of purchase price/year, typical effective rate for a newly-purchased or newly-built home in year 1",
+      "as_of": "2026-02", "source": "https://lao.ca.gov/reports/2012/tax/property-tax-primer-112912.aspx",
+      "note": "Under Prop 13, assessed value resets to purchase price at sale, then grows at most 2%/year, so the statewide-average figure above (blended across decades-long owners with deeply suppressed assessed values) understates what a new buyer pays. Typical range is 1.10%-1.30% (1% constitutional base + local voter-approved bonds/parcel taxes); new-construction developments with Mello-Roos CFD special assessments can run 1.4%-1.8%+ on top of that. Not applied to the computed estimate below, which uses the statewide-average figure."
+    },
     "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
     "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
     "relief_programs_note": "Property Tax Postponement Program: age 62+/blind/disabled, ≥40% home equity, no reverse mortgage, 2025-26 household income cap $55,181 -- state pays the current year's tax and places a lien, repaid at sale/transfer/death (does not reduce the tax itself, so not applied to the estimate below). Prop 19 also lets 55+/disabled homeowners transfer their existing lower assessed (Prop 13) value to a new home statewide, up to 3 times -- valuable if downsizing, not modeled here.",

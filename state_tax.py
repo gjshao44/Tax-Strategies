@@ -41,6 +41,18 @@ def fact_value(section, key, default=None):
     return default
 
 
+def get_alt_property_rate_key(pt_section):
+    """Find the state's alternate (non-statewide-average) property rate fact, if any --
+    e.g. new_buyer_effective_rate_pct, recent_construction_effective_rate_pct,
+    reassessed_effective_rate_pct. Each state has at most one."""
+    if not isinstance(pt_section, dict):
+        return None
+    for key in pt_section:
+        if key != "effective_rate_pct" and key.endswith("effective_rate_pct"):
+            return key
+    return None
+
+
 def apply_brackets(taxable, brackets):
     """brackets: ascending list of [lower_threshold, marginal_rate_pct]. Marginal tax calc."""
     if taxable <= 0 or not brackets:
@@ -70,11 +82,17 @@ def _any_qualifying(h_age, w_age, tax_status, threshold):
 
 
 def compute_state_tax(state_data: dict, tax_status: str, h_age: float, w_age: float,
-                       income: dict, home_value: float = 0.0) -> dict:
+                       income: dict, home_value: float = 0.0,
+                       property_rate_basis: str = "avg") -> dict:
     """income keys (all annual $, current-year/Year-1 picture): salary, ordinary_other
     (taxable bond interest + non-qualified dividend portion), qualified_dividends, capital_gains,
     ira_income (RMDs + discretionary IRA/401k withdrawals + Roth conversion -- all ordinary,
     tax-deferred-account-sourced income), total_ss (gross annual Social Security).
+
+    property_rate_basis: "avg" uses each state's statewide-average effective_rate_pct.
+    "new_buyer" uses the state's alternate rate fact (see get_alt_property_rate_key) when
+    that state has one -- CA/FL/TX price in a fresh purchase-year assessment, OR/PA price
+    in a newly-built/recently-reassessed property -- falling back to "avg" otherwise.
 
     Returns a dict with income_tax, property_tax, total_tax, and a breakdown for display.
     """
@@ -140,6 +158,27 @@ def compute_state_tax(state_data: dict, tax_status: str, h_age: float, w_age: fl
         ss_included = total_ss if ss_taxable else 0.0
         base = salary + ordinary_other + qualified_dividends + capital_gains + taxed_ira + ss_included
 
+        # Oregon-only: OR-40 Line 10 lets filers subtract federal tax liability (capped,
+        # phased out by federal AGI) from OR taxable income before the standard deduction.
+        fts = tc.get("federal_tax_subtraction")
+        federal_tax_subtraction = 0.0
+        if isinstance(fts, dict):
+            fv = fts.get("value", {})
+            fts_cap = fv.get("cap_mfj" if tax_status == "MFJ" else "cap_single", 0)
+            fts_start = fv.get("phaseout_start_mfj" if tax_status == "MFJ" else "phaseout_start_single", float("inf"))
+            fts_end = fv.get("phaseout_end_mfj" if tax_status == "MFJ" else "phaseout_end_single", float("inf"))
+            federal_agi = income.get("federal_agi", 0.0)
+            federal_tax_liability = income.get("federal_tax_liability", 0.0)
+            if federal_agi <= fts_start:
+                fts_max_allowed = fts_cap
+            elif federal_agi >= fts_end:
+                fts_max_allowed = 0.0
+            else:
+                fts_max_allowed = fts_cap * (fts_end - federal_agi) / (fts_end - fts_start)
+            federal_tax_subtraction = min(federal_tax_liability, fts_max_allowed)
+            base -= federal_tax_subtraction
+        breakdown["federal_tax_subtraction"] = federal_tax_subtraction
+
         std = fact_value(tc, "standard_deduction_mfj" if tax_status == "MFJ" else "standard_deduction_single", 0) or 0
         pe = fact_value(tc, "personal_exemption_mfj" if tax_status == "MFJ" else "personal_exemption_single", 0) or 0
         senior_ded_per = fact_value(tc, "senior_addl_deduction_mfj" if tax_status == "MFJ" else "senior_addl_deduction_single", 0) or 0
@@ -177,7 +216,10 @@ def compute_state_tax(state_data: dict, tax_status: str, h_age: float, w_age: fl
     breakdown["income_tax"] = income_tax
 
     pt = state_data.get("property_tax", {}) or {}
-    rate_pct = fact_value(pt, "effective_rate_pct", 0) or 0
+    rate_key = "effective_rate_pct"
+    if property_rate_basis == "new_buyer":
+        rate_key = get_alt_property_rate_key(pt) or "effective_rate_pct"
+    rate_pct = fact_value(pt, rate_key, 0) or 0
     general_reduction = fact_value(pt, "general_homestead_reduction_usd", 0) or 0
     senior_reduction = fact_value(pt, "senior_homestead_reduction_usd", 0) or 0
     num_65_any = 1 if _any_qualifying(h_age, w_age, tax_status, 65) else 0
@@ -185,6 +227,8 @@ def compute_state_tax(state_data: dict, tax_status: str, h_age: float, w_age: fl
     property_tax = taxable_home_value * (rate_pct / 100.0)
 
     breakdown["property_tax"] = property_tax
+    breakdown["property_tax_rate_key"] = rate_key
+    breakdown["property_tax_rate_pct"] = rate_pct
 
     return {
         "income_tax": income_tax,

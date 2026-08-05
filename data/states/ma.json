@@ -12,7 +12,8 @@
     "standard_deduction_mfj": {"value": 0, "unit": "$", "as_of": "2026-01", "source": ""},
     "personal_exemption_single": {"value": 4400, "unit": "$", "as_of": "2025-01", "source": "https://www.mass.gov/info-details/massachusetts-personal-income-tax-exemptions", "note": "MA has not historically inflation-indexed these amounts; 2025 figure treated as current for 2026."},
     "personal_exemption_mfj": {"value": 8800, "unit": "$", "as_of": "2025-01", "source": "https://www.mass.gov/info-details/massachusetts-personal-income-tax-exemptions"},
-    "senior_addl_exemption_per_person": {"value": 0, "unit": "$", "as_of": "2025-01", "source": "", "note": "No separate MA income-tax deduction/exemption tied purely to age 65+ beyond the personal exemptions above; MA's senior benefit runs through the Circuit Breaker property-tax credit instead (see senior_tax_credits)."}
+    "senior_addl_exemption_single": {"value": 700, "unit": "$ per filer age 65+ by Dec 31 of the tax year", "as_of": "2026-01", "source": "https://www.mass.gov/info-details/massachusetts-personal-income-tax-exemptions"},
+    "senior_addl_exemption_mfj": {"value": 700, "unit": "$ per qualifying spouse age 65+ by Dec 31 of the tax year (each spouse who separately qualifies gets their own $700)", "as_of": "2026-01", "source": "https://www.mass.gov/info-details/massachusetts-personal-income-tax-exemptions"}
   },
   "social_security": {
     "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://www.mass.gov/info-details/differences-between-ma-and-federal-tax-law-for-personal-income"},
@@ -23,7 +24,7 @@
     "note": "Private pensions, 401(k)/403(b), and traditional IRA distributions are fully taxable at 5% (9% above the surtax threshold). MA and other US-government pensions (and military pensions) are fully exempt -- not modeled here since this app's IRA/401(k) income represents private-style retirement accounts, not a government pension."
   },
   "senior_tax_credits": {
-    "note": "Senior Circuit Breaker Tax Credit is MA's main senior break -- see property_tax below. No separate income-tax-only senior credit exists.",
+    "note": "$700 additional personal exemption per filer age 65+ by Dec 31 (each spouse who separately qualifies claims their own $700 on a joint return) -- see income_tax.senior_addl_exemption_single/mfj above, applied to the computed estimate. The Senior Circuit Breaker Tax Credit (see property_tax below) is MA's other, larger senior break, but it's income-tested and not auto-applied.",
     "source": "https://www.mass.gov/info-details/massachusetts-senior-circuit-breaker-tax-credit", "as_of": "2025-01"
   },
   "property_tax": {

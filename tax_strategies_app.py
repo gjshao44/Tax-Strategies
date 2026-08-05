@@ -245,9 +245,8 @@ def run_monte_carlo(core_args, profile_key, ira_growth_raw, roth_growth_raw, bro
         all_nw[s] = df_sim["Expected Net Worth"].values
     years = list(range(int(core_args["retire_year"]), int(core_args["retire_year"]) + int(horizon)))
     p10 = np.percentile(all_nw, 10, axis=0)
-    p50 = np.percentile(all_nw, 50, axis=0)
-    p90 = np.percentile(all_nw, 90, axis=0)
-    return years, p10, p50, p90
+    median = np.percentile(all_nw, 50, axis=0)
+    return years, p10, median
 
 @st.cache_data
 def run_retirement_confidence(core_args, ira_growth_raw, roth_growth_raw, broker_growth_raw, n_sims=200, seed=42):
@@ -1326,12 +1325,16 @@ with tab_state:
         "capital_gains": annual_ltcg,
         "ira_income": yr1_ira_income,
         "total_ss": (ss_h_monthly + ss_w_monthly) * 12,
+        "federal_tax_liability": yr1_fed_tax,
+        # Federal AGI excludes muni interest (unlike this app's "OUT: MAGI", which adds it
+        # back for IRMAA/NIIT purposes) -- subtract it back out to match Form 1040 line 11.
+        "federal_agi": yr1_magi - muni_int_in,
     }
 
     # --- Selection inputs ---
     st.divider()
     st.markdown(f"##### {t['state_input_h']}")
-    sc1, sc2 = st.columns(2)
+    sc1, sc2, sc3 = st.columns(3)
     with sc1:
         selected_state = st.selectbox(
             t["state_select_label"], stx.STATE_ORDER,
@@ -1339,13 +1342,21 @@ with tab_state:
         )
     with sc2:
         home_value = st.number_input(t["state_home_value_label"], min_value=0, step=10000, key="state_home_value")
+    with sc3:
+        property_rate_basis = st.selectbox(
+            t["state_property_basis_label"],
+            ["avg", "new_buyer"],
+            format_func=lambda b: t["state_property_basis_avg"] if b == "avg" else t["state_property_basis_new"],
+            key="state_property_rate_basis",
+        )
 
     # --- Compute across all 10 states ---
     state_rows = []
     state_results = {}
     for abbr in stx.STATE_ORDER:
         result = stx.compute_state_tax(
-            all_states_data[abbr], tax_status, h_age_at_retire, w_age_at_retire, income_inputs, home_value
+            all_states_data[abbr], tax_status, h_age_at_retire, w_age_at_retire, income_inputs, home_value,
+            property_rate_basis=property_rate_basis,
         )
         state_results[abbr] = result
         state_rows.append({
@@ -1378,9 +1389,11 @@ with tab_state:
     st.altair_chart(state_bar_chart, width="stretch")
 
     state_display_df = df_state_compare.drop(columns=["abbr"]).copy()
-    for col in [t["state_col_income_tax"], t["state_col_property_tax"], t["state_col_total"], t["state_col_combined"]]:
-        state_display_df[col] = state_display_df[col].map(lambda v: f"${v:,.0f}")
-    st.dataframe(state_display_df, width="stretch", hide_index=True)
+    money_cols = [t["state_col_income_tax"], t["state_col_property_tax"], t["state_col_total"], t["state_col_combined"]]
+    st.dataframe(
+        state_display_df.style.format({col: "${:,.0f}" for col in money_cols}),
+        width="stretch", hide_index=True,
+    )
 
     # --- Breakdown for the selected state ---
     st.divider()
@@ -1393,6 +1406,10 @@ with tab_state:
     excluded_ri = sel_result["breakdown"].get("excluded_retirement_income", 0.0)
     if excluded_ri > 0:
         st.caption(f"{t['state_excluded_label']}: ${excluded_ri:,.0f}")
+
+    fed_tax_subtraction = sel_result["breakdown"].get("federal_tax_subtraction", 0.0)
+    if fed_tax_subtraction > 0:
+        st.caption(f"{t['state_fed_subtraction_label']}: \\${fed_tax_subtraction:,.0f}")
 
     taxable_base = sel_result["breakdown"].get("state_ordinary_taxable")
     total_deduction = sel_result["breakdown"].get("total_deduction")
@@ -1433,11 +1450,18 @@ with tab_state:
 
     with dd2:
         pt_section = sd.get("property_tax", {})
-        rate = stx.fact_value(pt_section, "effective_rate_pct", 0) or 0
-        st.markdown(f"**{t['state_property_rate_label']}:** {rate:.2f}%")
-        rate_fact = pt_section.get("effective_rate_pct", {})
-        if isinstance(rate_fact, dict) and rate_fact.get("source"):
+        used_rate_key = sel_result["breakdown"].get("property_tax_rate_key", "effective_rate_pct")
+        used_rate = sel_result["breakdown"].get("property_tax_rate_pct", 0) or 0
+        rate_fact = pt_section.get(used_rate_key, {}) or {}
+        basis_label = (
+            t["state_property_basis_avg"] if used_rate_key == "effective_rate_pct"
+            else rate_fact.get("label", t["state_property_basis_new"])
+        )
+        st.markdown(f"**{t['state_property_rate_label']}:** {used_rate:.2f}% ({basis_label})")
+        if rate_fact.get("source"):
             st.caption(f"[source]({rate_fact['source']})")
+        if property_rate_basis == "new_buyer" and used_rate_key == "effective_rate_pct":
+            st.caption(t["state_property_basis_na_note"])
 
         if income_tax_type == "none":
             st.markdown(f"**{t['state_no_income_tax']}**")
@@ -1487,10 +1511,10 @@ with tab_whatif:
     mc_final_medians = {}
     mc_chart_data = []
     for gp_key, gp_name in zip(mc_gp_keys, mc_gp_labels):
-        years, p10, p50, p90 = run_monte_carlo(mc_core, gp_key, ira_growth_raw, roth_growth_raw, broker_growth_raw)
-        mc_final_medians[gp_name] = p50[-1]
+        years, p10, median = run_monte_carlo(mc_core, gp_key, ira_growth_raw, roth_growth_raw, broker_growth_raw)
+        mc_final_medians[gp_name] = median[-1]
         for j, yr in enumerate(years):
-            mc_chart_data.append({"Year": yr, "Median": p50[j], "P10": p10[j], "P90": p90[j], "Profile": gp_name})
+            mc_chart_data.append({"Year": yr, "Median": median[j], "P10": p10[j], "Profile": gp_name})
 
     best_gp_name = max(mc_final_medians, key=mc_final_medians.get)
     worst_gp_name = min(mc_final_medians, key=mc_final_medians.get)
@@ -1521,7 +1545,7 @@ with tab_whatif:
 
     ws_lines = alt.Chart(df_ws_chart).mark_line(strokeWidth=2.5).encode(
         x=alt.X('Year:Q', title="Year", axis=alt.Axis(format='d')),
-        y=alt.Y('Expected Net Worth:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
+        y=alt.Y('Expected Net Worth:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False), axis=alt.Axis(format='$.3s')),
         color=alt.Color('Strategy:N', sort=ws_chart_display, legend=alt.Legend(title="Withdrawal Strategy")),
     )
     nearest_ws = alt.selection_point(nearest=True, on="pointerover", fields=["Year"], empty=False)
@@ -1547,17 +1571,16 @@ with tab_whatif:
 - **Moderate (your settings):** Your current growth assumptions as the baseline. Rates: IRA {ira_growth_raw:.1f}% | Roth {roth_growth_raw:.1f}% | Brokerage {broker_growth_raw:.1f}%. Volatility: 10%.
 - **Aggressive (+2%):** Bull market or equity-heavy allocation. Rates: IRA {ira_growth_raw+2:.1f}% | Roth {roth_growth_raw+2:.1f}% | Brokerage {broker_growth_raw+2:.1f}%. Volatility: 14%.
 
-**Reading the chart:** Solid line = **median** (50th percentile, most likely outcome). Shaded band = **10th–90th percentile** (80% of simulated paths fall here). Narrow band = predictable; wide band = high uncertainty.
+**Reading the chart:** Solid line = **median** (50th percentile, most likely outcome). Shaded band extends down to the **10th percentile** (a prudent downside case — 90% of simulated paths did better than this). Narrow band = predictable; wide band = high downside uncertainty.
 """)
 
     # Show both upside and downside perspective
     df_mc_all = pd.DataFrame(mc_chart_data)
     aggressive_p10 = df_mc_all[df_mc_all["Profile"] == mc_gp_labels[3]].iloc[-1]["P10"]
-    aggressive_p90 = df_mc_all[df_mc_all["Profile"] == mc_gp_labels[3]].iloc[-1]["P90"]
     moderate_median = mc_final_medians[mc_gp_labels[2]]
     conservative_p10 = df_mc_all[df_mc_all["Profile"] == mc_gp_labels[1]].iloc[-1]["P10"]
 
-    st.info(f"**Upside vs. downside:** {best_gp_name} median is {gp_spread:,.0f} higher than {worst_gp_name}, but its 10th percentile ({aggressive_p10:,.0f}) could underperform {mc_gp_labels[2]} median ({moderate_median:,.0f}). Higher growth comes with wider uncertainty bands.")
+    st.info(f"**Upside vs. downside:** {best_gp_name} median is {gp_spread:,.0f} higher than {worst_gp_name}, but its 10th percentile ({aggressive_p10:,.0f}) could underperform {mc_gp_labels[2]} median ({moderate_median:,.0f}). Higher growth comes with wider downside uncertainty.")
 
     current_gp_name = mc_gp_labels[mc_gp_keys.index(growth_profile)]
     gp_col1, gp_col2, gp_col3, gp_col4 = st.columns(4)
@@ -1583,17 +1606,18 @@ with tab_whatif:
 
         base_lines = alt.Chart(df_mc).mark_line(strokeWidth=2.5).encode(
             x=alt.X('Year:Q', title="Year", axis=alt.Axis(format='d')),
-            y=alt.Y('Median:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False)),
+            y=alt.Y('Median:Q', title="Expected Net Worth ($)", scale=alt.Scale(zero=False), axis=alt.Axis(format='$.3s')),
             color=alt.Color('Profile:N', scale=color_scale, sort=mc_profiles_shown, legend=alt.Legend(title="Growth Profile")),
-            tooltip=[alt.Tooltip('Year:Q', format='d'), alt.Tooltip('Median:Q', title="Median", format='$,.0f'), alt.Tooltip('P10:Q', title="10th Pctl", format='$,.0f'), alt.Tooltip('P90:Q', title="90th Pctl", format='$,.0f'), alt.Tooltip('Profile:N')]
+            tooltip=[alt.Tooltip('Year:Q', format='d'), alt.Tooltip('Median:Q', title="Median", format='$,.0f'), alt.Tooltip('P10:Q', title="10th Pctl", format='$,.0f'), alt.Tooltip('Profile:N')]
         )
         bands = alt.Chart(df_mc).mark_area(opacity=0.15).encode(
             x=alt.X('Year:Q', axis=alt.Axis(format='d')),
             y=alt.Y('P10:Q', title=""),
-            y2='P90:Q',
-            fill=alt.Fill('Profile:N', scale=color_scale, sort=mc_profiles_shown, legend=None)
+            y2='Median:Q',
+            fill=alt.Fill('Profile:N', scale=color_scale, sort=mc_profiles_shown, legend=None),
+            tooltip=alt.value(None)
         )
-        st.altair_chart(alt.layer(base_lines, bands), width='stretch')
+        st.altair_chart(alt.layer(bands, base_lines), width='stretch', theme=None)
     else:
         st.warning("Select at least one profile to display.")
 

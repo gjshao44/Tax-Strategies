@@ -16,7 +16,18 @@
     "standard_deduction_single": {"value": 2910, "unit": "$", "as_of": "2026-01", "source": "https://www.halfpricesoft.com/2026/taxrate-oregon-2026.asp"},
     "standard_deduction_mfj": {"value": 5820, "unit": "$", "as_of": "2026-01", "source": "https://www.halfpricesoft.com/2026/taxrate-oregon-2026.asp"},
     "senior_addl_deduction_single": {"value": 1200, "unit": "$ per qualifying filer 65+ (single/HOH)", "as_of": "2025-01", "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40_101-040_2025.pdf", "note": "2025 figure carried forward; 2026 not separately confirmed."},
-    "senior_addl_deduction_mfj": {"value": 1000, "unit": "$ per qualifying spouse 65+ on a joint return", "as_of": "2025-01", "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40_101-040_2025.pdf"}
+    "senior_addl_deduction_mfj": {"value": 1000, "unit": "$ per qualifying spouse 65+ on a joint return", "as_of": "2025-01", "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40_101-040_2025.pdf"},
+    "federal_tax_subtraction": {
+      "value": {
+        "cap_single": 8750, "cap_mfj": 8750,
+        "phaseout_start_single": 125000, "phaseout_end_single": 145000,
+        "phaseout_start_mfj": 250000, "phaseout_end_mfj": 290000
+      },
+      "unit": "OR-40 Line 10: subtract your federal income tax liability (after nonrefundable credits, before EITC) from OR taxable income, up to this cap; the cap phases out linearly to $0 as federal AGI (Form 1040 line 11) rises through the phaseout band. Not doubled for MFJ -- same cap as single, only the phaseout band is doubled in width and start point.",
+      "as_of": "2026-01",
+      "source": "https://www.oregon.gov/dor/forms/FormsPubs/form-or-40-inst_101-040-1_2025.pdf",
+      "note": "2025 tax-year confirmed cap (per official OR-40 instructions, Table 4) is $8,500 (MFJ/single; $4,250 MFS), phaseout $125,000-$145,000 (single) / $250,000-$290,000 (MFJ) based on federal AGI. The $8,750 cap used here is the 2026-projected figure from Oregon DOR's 2026 withholding tax formulas (150-206-436, Rev. 12-31-25), which uses the identical threshold boundaries with an inflation-adjusted cap; the official 2026 Table 4 (income-tax-return version) wasn't yet published at time of research, so this cap could be off by a small amount, though the phaseout structure and thresholds should be accurate. This app approximates 'federal tax liability' using its own total computed federal tax (which includes NIIT; the real OR-40 worksheet likely excludes NIIT from this base) -- a minor simplification, since the $8,750 cap is almost always the binding constraint for any income level where an Oregon retiree would actually owe meaningful federal tax."
+    }
   },
   "social_security": {
     "taxable": {"value": false, "unit": "boolean", "as_of": "2026-01", "source": "https://oregon.public.law/statutes/ors_316.054"},
@@ -32,6 +43,7 @@
   },
   "property_tax": {
     "effective_rate_pct": {"value": 0.81, "unit": "% of home value/year, statewide avg effective rate", "as_of": "2026-02", "source": "https://wallethub.com/edu/states-with-the-highest-and-lowest-property-taxes/11585"},
+    "recent_construction_effective_rate_pct": {"value": 2.0, "label": "Newly built / recently assessed", "unit": "% of real market value/year, illustrative rate for a newly-built home or one assessed near full market value", "as_of": "2026-02", "source": "https://www.virtuance.com/blog/property-tax-rates-portland/", "note": "Unlike CA/FL/TX, Oregon's Measure 50 assessed-value cap (3%/year max growth) does NOT reset at sale -- a buyer of an existing home inherits the seller's suppressed Maximum Assessed Value, so 'new buyer' isn't the relevant divider here. Instead, the gap tracks how long ago the structure was built/last valued near market (via each county's Change Property Ratio), which can leave decades-old homes assessed at well under half of real market value in some counties (e.g. Hood River County's residential ratio was ~42% in 2022). This is illustrative only, based on core Portland's ~$26.73/$1,000 assessed value consolidated rate (2024-25); it varies widely by county/district and is not adjusted for each county's Change Property Ratio (which itself keeps even new construction's assessed value somewhat below its real market value). Not applied to the computed estimate below, which uses the statewide-average figure."},
     "general_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, all homeowners", "as_of": "2026-02", "source": ""},
     "senior_homestead_reduction_usd": {"value": 0, "unit": "$ off assessed value, age 65+", "as_of": "2026-02", "source": ""},
     "relief_programs_note": "Property Tax Deferral for Disabled and Senior Homeowners: age 62+ (or disabled), owned/occupied home 5+ consecutive years, 2026 household income limit $70,000, home real market value cap $301,000 -- state pays current taxes and records a lien at 6% simple annual interest, repaid at sale/death/transfer (income-tested, not applied to the estimate below).",
